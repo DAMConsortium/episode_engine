@@ -78,9 +78,10 @@ module EpisodeEngine
     post '/api' do
       log_request_match(__method__)
       _params = params.dup
+      _params = merge_params_from_body(_params)
 
       command = search_hash!(_params, :procedure, :method, :command)
-      method_name = command.gsub('-', '_').to_sym
+      method_name = command.sub('-', '_').to_sym
       method_arguments = search_hash!(_params, :arguments)
       method_arguments = JSON.parse(method_arguments) rescue method_arguments if method_arguments.is_a?(String)
       logger.debug { "\nCommand: #{method_name}\nArguments: #{method_arguments}" }
@@ -108,21 +109,7 @@ module EpisodeEngine
       log_request_match(__method__)
       request_id = record_request(:job, __method__)
       _params = params.dup
-
-      if request.media_type == 'application/json'
-        request.body.rewind
-        body_contents = request.body.read
-        logger.debug { "Parsing: '#{body_contents}'" }
-        if body_contents
-          json_params = JSON.parse(body_contents)
-          if json_params.is_a?(Hash)
-            _params = json_params.merge(_params)
-          else
-            _params['body'] = json_params
-          end
-        end
-      end
-
+      _params = merge_params_from_body(_params)
 
       send_to_ubiquity = search_hash!(_params, :send_to_ubiquity, { :ignore_strings => %w(_ -), :case_sensitive => false })
       arguments = search_hash!(_params, :arguments)
@@ -217,6 +204,22 @@ module EpisodeEngine
       return _response
     end # output_response
 
+    def merge_params_from_body(_params = params)
+      if request.media_type == 'application/json'
+        request.body.rewind
+        body_contents = request.body.read
+        logger.debug { "Parsing: '#{body_contents}'" }
+        if body_contents
+          json_params = JSON.parse(body_contents)
+          if json_params.is_a?(Hash)
+            _params = json_params.merge(_params)
+          else
+            _params['body'] = json_params
+          end
+        end
+      end
+      _params
+    end # merge_params_from_body
 
     def request_to_hash(_request = request)
       #request.accept              # ['text/html', '*/*']
