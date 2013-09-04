@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+begin
+  require 'episode_engine/http/cli'
+rescue LoadError
+  lib_path = File.expand_path('../../lib', __FILE__)
+  unless $:.include?(lib_path)
+    $:.unshift(lib_path)
+    #warn("Retrying to load Episode Engine after adding #{lib_path} to $LOAD_PATH. The GEM may not be installed correctly.")
+    retry
+  end
+  abort("Failed to load the Episode Engine gem. #{$!}")
+end
+EpisodeEngine::HTTP::CLI.new
