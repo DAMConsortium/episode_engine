@@ -28,17 +28,23 @@ cd episode_engine/bin
 
 ## HTTP Executable Usage
 episode_engine_http [start, stop, status] [options]
-    --binding BINDING            The address to bind the callback server to.
-                                    default:
-    --port PORT                  The port that the callback server should listen on.
-                                    default:
-    --log-to FILEPATH            The location to log to.
-                                    default: STDOUT
-    --log-level LEVEL            Logging level. Available Options: debug, info, warn, error, fatal
-                                    default: debug
-    --[no-]options-file [FILEPATH]
-                                 An option file to use to set additional command line options.
-    --ubiquity-executable-path FILEPATH
-                                 The path to the Ubiquity executable.
-                                 default: /usr/local/bin/uu
-    -h, --help                       Show this message.
+
+--binding BINDING            The address to bind the callback server to.
+                               default: 0.0.0.0
+
+--port PORT                  The port that the callback server should listen on.
+                                default: 40431
+
+--log-to FILEPATH            The location to log to.
+                                default: STDOUT
+
+--log-level LEVEL            Logging level. Available Options: debug, info, warn, error, fatal
+                                default: debug
+
+--[no-]options-file [FILEPATH]
+                             An option file to use to set additional command line options.
+--ubiquity-executable-path FILEPATH
+                             The path to the Ubiquity executable.
+                               default: /usr/local/bin/uu
+
+-h, --help                       Show this message.
