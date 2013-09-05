@@ -2,31 +2,31 @@
 
   A gem containing a library for interacting with Telestream's Episode Engine product.
 
-= Installation
+# Installation
 
-== Clone the repository
+## Clone the repository
 git clone https://github.com/DAMConsortium/episode_engine.git
 
-== Change Directory to the bin director
+## Change Directory to the bin director
 cd episode_engine/bin
 
-== Run bundle update
+## Run bundle update
 ./episode_engine/bundle update
 
-== Start HTTP Server
+## Start HTTP Server
 
 ./bin/episode_engine_http
 
-=== Start as a daemon
+### Start as a daemon
 ./bin/episode_engine_http start
 
-=== Stop daemon
+### Stop daemon
 ./bin/episode_engine_http stop
 
-=== Daemon Status
+### Daemon Status
 ./bin/episode_engine_http status
 
-== Usage
+## HTTP Executable Usage
 episode_engine_http [start, stop, status] [options]
     --binding BINDING            The address to bind the callback server to.
                                     default:
