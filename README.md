@@ -43,6 +43,7 @@ episode_engine_http [start, stop, status] [options]
 
 --[no-]options-file [FILEPATH]
                              An option file to use to set additional command line options.
+                             
 --ubiquity-executable-path FILEPATH
                              The path to the Ubiquity executable.
                                default: /usr/local/bin/uu
