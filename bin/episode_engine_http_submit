@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+# Submits jobs to the Episode Engine HTTP
+
+# ./episode_engine_http_submit --body '{"source_file_path":"/assets/test.mov"}' --path '/ubiquity/submit' --pretty-print
+require 'json'
+require 'optparse'
+require 'net/http'
+require 'uri'
+
+options = { }
+options[:protocol] = 'http'
+options[:host_address] = 'localhost'
+options[:host_port] = '8080'
+options[:path] = '/jobs'
+
+op = OptionParser.new
+op.on('--uri URI', '') { |v| options[:uri] = v }
+op.on('--protocol PROTOCOL', '', "\tdefault: #{options[:protocol]}") { |v| options[:protocol] = v }
+op.on('--host-address ADDRESS', '', "\tdefault: #{options[:host_address]}") { |v| options[:host_address] = v }
+op.on('--host-port PORT', '', "\tdefault: #{options[:host_port]}") { |v| options[:host_port] = v }
+op.on('--path PATH', '', "\tdefault: #{options[:path]}") { |v| options[:path] = v }
+op.on('--body STRING', '') { |v| options[:body] = v }
+op.on('--pretty-print', '') { |v| options[:pretty_print] = v }
+op.on('--help', 'Displays Usage and Options.') { puts op; exit }
+op.load
+op.parse!
+
+options[:uri] ||= "#{options[:protocol]}://#{options[:host_address]}:#{options[:host_port]}#{options[:path]}"
+uri = URI.parse(options[:uri])
+http = Net::HTTP.new(uri.host, uri.port)
+request = Net::HTTP::Post.new(uri.request_uri)
+request['Content-Type'] = 'application/json'
+request.body = options[:body] if options[:body]
+
+response = http.request(request)
+
+if response.body
+  if options[:pretty_print]
+    body = JSON.pretty_generate(JSON.parse(response.body))
+  else
+    body = response.body
+  end
+  puts body
+else
+  puts response
+end
