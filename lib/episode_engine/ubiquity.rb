@@ -67,7 +67,7 @@ module EpisodeEngine
         workflow_name = params[:workflow_name]
         workflow_parameters = params[:workflow_parameters]
 
-        arguments = [ @executable_path, 'job' ]
+        arguments = [ @executable_path, 'jobs' ]
         arguments << '--workflow' << workflow_name if workflow_name
         arguments << '--workflow-parameters' << workflow_parameters if workflow_parameters
         cmd_line = arguments.shelljoin
@@ -82,8 +82,8 @@ module EpisodeEngine
     class HTTP < Submitter
 
       DEFAULT_HOST_ADDRESS = 'localhost'
-      DEFAULT_HOST_PORT = '80'
-      DEFAULT_URI_PATH = 'job'
+      DEFAULT_HOST_PORT = 4567
+      DEFAULT_URI_PATH = 'jobs'
 
       attr_accessor :host_address
       attr_accessor :host_port
@@ -104,7 +104,15 @@ module EpisodeEngine
         params = common_submit(args)
 
         r = Net::HTTP.post_form(@job_uri, params)
-        response = { :uri => @job_uri, :response => r }
+        response = { :uri => @job_uri.to_s, :response => r }
+        if r.body
+          response[:body] = r.body
+          if r.content_type == 'application/json'
+            response[:body_as_hash] = JSON.parse(r.body)
+          else
+            response[:body_as_hash] = { }
+          end
+        end
         response
       end # submit
 

@@ -39,6 +39,17 @@ module EpisodeEngine
           id
         end # insert
 
+        def update(id, data, options = { })
+          data[:modified_at] = Time.now.to_i
+          query = options[:query] || {'_id' => id }
+
+          unless data.has_key?('_id')
+            data = { '$set' => data }
+          end
+
+          db.update(query, data)
+        end # update
+
         def find_by_id(id)
           db.find_one('_id' => id)
         end # find_by_id
@@ -63,9 +74,10 @@ module EpisodeEngine
       #register Sinatra::Reloader
     end
 
-    def record_request(subject, route = nil)
+    def record_request(subject, system = nil, route = nil)
       request_as_hash = request_to_hash
       request_as_hash[:route] = route.to_s
+      request_as_hash[:system] = system.to_s
       id = Requests.insert(request_as_hash, subject)
       id
     end # record_request
@@ -107,7 +119,7 @@ module EpisodeEngine
 
     post '/jobs' do
       log_request_match(__method__)
-      request_id = record_request(:job, __method__)
+      request_id = record_request(:job, :episode_engine, __method__)
       _params = params.dup
       _params = merge_params_from_body(_params)
 
@@ -117,16 +129,19 @@ module EpisodeEngine
 
       else
         if arguments
-          response = episode_api.submit_build_submission(arguments)
+          _response = episode_api.submit_build_submission(arguments)
         else
-          response = { 'error' => { 'message' => 'arguments is a required argument.'}}
+          _response = { 'error' => { 'message' => 'arguments is a required argument.'}}
         end
       end
 
-      error = response['error']
+      error = _response['error']
       error_occurred = error.respond_to?(:empty?) ? !error.empty? : !!error
 
-      format_response({ :request => { :id => request_id.to_s }, :response => response, :success => !error_occurred })
+
+      response = { :request => { :id => request_id.to_s }, :response => { :source => 'episode', :content => _response.inspect }, :success => !error_occurred }
+      Requests.update(request_id, { :response => response[:response], :success => response[:success] })
+      format_response(response)
     end
 
     put '/jobs/:id' do
@@ -150,16 +165,56 @@ module EpisodeEngine
     end
     ### REQUEST ROUTES END
 
+
     ### UBIQUITY ROUTES BEGIN
+    post '/ubiquity/submit' do
+      log_request_match(__method__)
+      request_id = record_request(:job, :ubiquity, __method__)
+      _params = params.dup
+      _params = merge_params_from_body(_params)
+
+      #method = _params['method'] || :command_line
+      method = _params['method'] || :http
+      _params['workflow_name'] ||= 'EPISODE_ENGINE_SUBMISSION'
+      _params['workflow_parameters'] ||= JSON.generate({:source_file_path => _params['source_file_path']})
+      if method == :http
+        _response = Ubiquity::HTTP.submit(_params)
+        response_as_hash = ubiquity_http_response_to_hash(_response)
+      else
+        _response = Ubiquity::CommandLine.submit(_params)
+        response_as_hash = _response
+      end
+      success = response_as_hash[:success]
+      pp response_as_hash
+
+      response = { :request => { :id => request_id.to_s }, :response => { :source => 'ubiquity', :content => response_as_hash }, :success => success }
+      Requests.update(request_id, { :response => response[:response], :success => response[:success] })
+      logger.debug { "Response: #{response}" }
+      format_response(response)
+    end
+
+    def ubiquity_http_response_to_hash(response)
+      pp response
+      out = response
+      _response = out.delete(:response)
+      out[:code] = _response.code
+      out[:message] = _response.message
+      out[:content_type] = _response.content_type
+      out[:success] = out[:body_as_hash]['success']
+      out
+    end
+
     post '/ubiquity' do
       log_request_match(__method__)
-      record_request(:job, __method__)
+      request_id = record_request(:job, :ubiquity, __method__)
+      _params = params.dup
+      _params = merge_params_from_body(_params)
 
-      method = params[:method] || :command_line
+      method = _params[:method] || :command_line
       if method == :http
-        response = Ubiquity::HTTP.submit(params)
+        response = Ubiquity::HTTP.submit(_params)
       else
-        response = Ubiquity::CommandLine.submit(params)
+        response = Ubiquity::CommandLine.submit(_params)
       end
       format_response(response)
     end
@@ -193,15 +248,15 @@ module EpisodeEngine
       case request.preferred_type(supported_types)
         when 'application/json'
           content_type :json
-          _response = JSON.generate(response)
+          _response = response.is_a?(Hash) || response.is_a?(Array) ? JSON.generate(response) : response
         #when 'application/xml', 'text/xml'
         #  content_type :xml
         #  _response = XmlSimple.xml_out(response, { :root_name => 'response' })
         else
           content_type :json
-          _response = response.is_a?(String) && response.lstrip.start_with?('{', '[') ? JSON.generate(response) : response
+          _response = response.is_a?(Hash) || response.is_a?(Array) ? JSON.generate(response) : response
       end
-      return _response
+       _response
     end # output_response
 
     def merge_params_from_body(_params = params)

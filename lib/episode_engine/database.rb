@@ -41,7 +41,15 @@ module EpisodeEngine
 
       def remove(*args); col.remove(Mongoize.to_mongo(*args)) end # remove
 
-      def update(*args); col.update(Mongoize.to_mongo(*args)) end # update
+      def update(id, document, opts = { })
+        document = document.dup
+        _document = { }
+        %w($set $unset $push $rename $inc $setOnInsert, $bit, $isolated).each { |op|
+          _document[op] = Mongoize.to_mongo(document.delete(op), :invalid_chr_patter => /^\./) if document[op]
+        }
+        _document = _document.merge(Mongoize.to_mongo(document, :invalid_chr_patter => /^\./))
+        col.update(id, _document, opts)
+      end # update
 
       def save(*args); col.save(Mongoize.to_mongo(*args)) end # save
 
