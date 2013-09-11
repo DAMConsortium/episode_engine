@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = EpisodeEngine::VERSION
   spec.authors       = ['John Whitson']
   spec.email         = %w(john.whitson@gmail.com)
-  spec.description   = %q{A library to interact with the Telestream's Episode Engine product.}
+  spec.description   = %q{A library to interact with Telestream's Episode Engine product.}
   spec.summary       = %q{}
   spec.homepage      = ''
   spec.license       = 'MIT'
