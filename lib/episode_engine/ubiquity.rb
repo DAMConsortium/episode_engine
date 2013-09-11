@@ -289,6 +289,7 @@ module EpisodeEngine
     end # Processor
 
     DEFAULT_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION'
+    DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION_TRANSCODE_SETTINGS_NOT_FOUND'
 
     class <<self
       attr_accessor :logger
@@ -325,7 +326,6 @@ module EpisodeEngine
 
       submission_method = args['method'] || :http
 
-      workflow_name = args['workflow_name'] ||= DEFAULT_WORKFLOW_NAME
       workflow_parameters_json = args['workflow_parameters'] || args['workflow-parameters']
       workflow_parameters = JSON.parse(workflow_parameters_json) if workflow_parameters_json.is_a?(String)
       workflow_parameters ||= { }
@@ -351,8 +351,9 @@ module EpisodeEngine
         #workflow_parameters['metadata_sources'] = metadata_sources
 
         unless transcode_settings
+
           # No Match - Transcode Settings Were Not Found
-          workflow_name = 'EPISODE_ENGINE_TRANSCODE_SETTINGS_NOT_FOUND'
+          workflow_name = DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
 
           workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters)}
           submission_options = { :method => submission_method}
@@ -361,15 +362,16 @@ module EpisodeEngine
           return { :error => { :message => 'Transcode Settings Not Found' } }
 
         else
-
+          workflow_name = args['workflow_name'] ||= DEFAULT_WORKFLOW_NAME
           fields_to_split = [ 'encoded_file_name_suffix' ]
 
           splits = { }
           fields_to_split.each do |field_name|
-            splits[field_name] = transcode_settings[field_name].split(',')
+            splits[field_name] = transcode_settings[field_name].split(',').map { |v| v.respond_to?(:strip) ? v.strip : v }
           end
 
         end
+
         tasks = transcode_settings['epitask_file_name'].split(',')
         logger.debug { "Tasks: #{tasks}"}
 
