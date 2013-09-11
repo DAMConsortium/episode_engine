@@ -18,8 +18,8 @@ module EpisodeEngine
 
     require 'pp'
     require 'roo'
-#ENV['GOOGLE_MAIL'] = ''
-#ENV['GOOGLE_PASSWORD'] = ''
+    #ENV['GOOGLE_MAIL'] = ''
+    #ENV['GOOGLE_PASSWORD'] = ''
 
     class TranscodeSettingsLookup
 
@@ -125,14 +125,12 @@ module EpisodeEngine
           options = options.dup if options.respond_to?(:dup)
           @logger = options.delete(:logger) if options[:logger]
 
-
-          trancode_settings_file_path = options.delete(:transcode_settings_file_path)
+          file_path = options.delete(:transcode_settings_file_path)
           google_workbook_id = options.delete(:transcode_settings_google_workbook_id) { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
 
           transcode_settings_options = { }
           transcode_settings_options[:google_workbook_id] = google_workbook_id if google_workbook_id
-          transcode_settings_options[:file_path]
-
+          transcode_settings_options[:file_path] = file_path if file_path
 
           #@transcode_settings_table ||= self.build_transcode_settings_table(workbook_id, options)
           @transcode_settings_table = self.build_transcode_settings_table(transcode_settings_options)
@@ -279,15 +277,6 @@ module EpisodeEngine
 
     end # HTTP
 
-    class Processor
-
-      def self.process(args = { })
-
-
-      end # self.process
-
-    end # Processor
-
     DEFAULT_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION'
     DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION_TRANSCODE_SETTINGS_NOT_FOUND'
 
@@ -360,25 +349,24 @@ module EpisodeEngine
           response_as_hash = submit_workflow(workflow, submission_options)
 
           return { :error => { :message => 'Transcode Settings Not Found' } }
-
-        else
-          workflow_name = args['workflow_name'] ||= DEFAULT_WORKFLOW_NAME
-          fields_to_split = [ 'encoded_file_name_suffix' ]
-
-          splits = { }
-          fields_to_split.each do |field_name|
-            splits[field_name] = transcode_settings[field_name].split(',').map { |v| v.respond_to?(:strip) ? v.strip : v }
-          end
-
         end
 
-        tasks = transcode_settings['epitask_file_name'].split(',')
+        workflow_name = args['workflow_name'] ||= DEFAULT_WORKFLOW_NAME
+        fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
+
+        splits = { }
+        fields_to_split.each do |field_name|
+          splits[field_name] = transcode_settings[field_name].split(',').map { |v| v.respond_to?(:strip) ? v.strip : v }
+        end
+
+
+        tasks = splits.delete('epitask_file_name')
         logger.debug { "Tasks: #{tasks}"}
 
         task_responses = { }
         tasks.each do |task|
 
-          workflow_parameters['episode_engine_epitask'] = task
+          workflow_parameters['epitask_file_name'] = task
           splits.each { |k,v| workflow_parameters[k] = v.shift }
 
           #_params['workflow_name'] ||= 'EPISODE_ENGINE_SUBMISSION'
