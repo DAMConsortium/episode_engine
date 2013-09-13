@@ -25,13 +25,13 @@ module EpisodeEngine
 
         op.on('--ubiquity-executable-path FILEPATH', 'The path to the Ubiquity executable.',
               'default: /usr/local/bin/uu') { |v| options[:uu_executable_path] = v }
-        op.on('--ubiquity-submission-workflow-name NAME', '') { |v| options[:ubiquity_submission_workflow_name] = v }
-        op.on('--ubiquity-submission-missing-lookup-workflow-name NAME', '') { |v| options[:ubiquity_submission_missing_lookup_workflow_name] = v }
+        op.on('--ubiquity-submission-workflow-name NAME', ' ') { |v| options[:ubiquity_submission_workflow_name] = v }
+        op.on('--ubiquity-submission-missing-lookup-workflow-name NAME', ' ') { |v| options[:ubiquity_submission_missing_lookup_workflow_name] = v }
         op.on('--mig-path FILEPATH', '') { |v| options[:mig_executable_file_path] = v }
         op.on('--workbook-username USERNAME', '') { |v| options[:transcode_settings_google_workbook_username] = v }
         op.on('--workbook-password PASSWORD', '') { |v| options[:transcode_settings_google_workbook_password] = v }
         op.on('--workbook-id ID', '') { |v| options[:transcode_settings_google_workbook_id] = v }
-        op.on('--workbook-file-path FILEPATH', '') { |v| options[:transcode_settings_workbook_file_path] = v }
+        op.on('--workbook-file-path FILEPATH', ' ') { |v| options[:transcode_settings_workbook_file_path] = v }
 
 
         op.on('--log-to FILEPATH', 'The location to log to.', "\tdefault: STDOUT") { |v| options[:log_to] = v }
