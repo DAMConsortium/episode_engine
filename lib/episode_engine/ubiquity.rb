@@ -39,6 +39,7 @@ module EpisodeEngine
 
         def build_transcode_settings_table(args = { })
           args = args.dup
+          #puts "BUILD TRANSCODE SETTINGS TABLE ARGS: #{PP.pp(args, '')}"
           google_workbook_id = args.delete(:google_workbook_id)
           file_path = args.delete(:file_path)
 
@@ -133,7 +134,7 @@ module EpisodeEngine
 
           transcode_settings_options = { }
           transcode_settings_options[:google_workbook_id] = google_workbook_id if google_workbook_id
-          transcode_settings_options[:username] = google_workbook_username
+          transcode_settings_options[:user] = google_workbook_username
           transcode_settings_options[:password] = google_workbook_password
           transcode_settings_options[:file_path] = file_path if file_path
 
@@ -314,7 +315,6 @@ module EpisodeEngine
 
     def self.submit(args = { }, options = { })
       logger.debug { "Submission Arguments: #{PP.pp(args, '')}" }
-
       #method = _params['method'] || :command_line
 
       submission_method = args['method'] || :http
