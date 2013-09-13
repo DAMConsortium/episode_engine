@@ -302,6 +302,7 @@ module EpisodeEngine
 
 
     def self.submit_workflow(workflow, options = { })
+      logger.debug { "Submitting To Ubiquity: #{PP.pp(workflow, '')}"}
       method = options[:method] || :http
       if method == :http
         _response = Ubiquity::HTTP.submit(workflow)
@@ -310,6 +311,7 @@ module EpisodeEngine
         _response = Ubiquity::CommandLine.submit(workflow)
         response_as_hash = Ubiquity::CommandLine.response_to_hash(_response)
       end
+      logger.debug { "Response From Ubiquity:\n\n#{_response}\n\n#{PP.pp(response_as_hash, '')}"}
       response_as_hash
     end # self.submit_workflow
 
