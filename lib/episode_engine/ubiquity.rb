@@ -363,7 +363,7 @@ module EpisodeEngine
         end
 
         workflow_name = args['workflow_name'] || options[:submission_workflow_name] || DEFAULT_WORKFLOW_NAME
-        fields_to_split = [ 'epitask_file_name_source_directory', 'epitask_file_name', 'encoded_file_name_suffix' ]
+        fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
 
         splits = { }
         fields_to_split.each do |field_name|
