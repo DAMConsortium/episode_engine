@@ -390,8 +390,8 @@ module EpisodeEngine
 
       mig_executable_file_path = args[:mig_executable_file_path] || Ubiquity::DEFAULT_MIG_EXECUTABLE_PATH
 
-      workbook_username = args[:transcode_settings_workbook_username]
-      workbook_password = args[:transcode_settings_workbook_password]
+      workbook_username = args[:transcode_settings_google_workbook_username]
+      workbook_password = args[:transcode_settings_google_workbook_password]
       google_workbook_id = args[:transcode_settings_google_workbook_id] || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
       workbook_file_path = args[:transcode_settings_workbook_file_path]
 
