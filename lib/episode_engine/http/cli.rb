@@ -61,8 +61,6 @@ module EpisodeEngine
 
       def initialize(args = {})
         args = parse_options.merge(args)
-        pp args
-        exit
         app = EpisodeEngine::HTTP
         app.init(args)
         app.run!
