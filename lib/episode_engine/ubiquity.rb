@@ -347,6 +347,7 @@ module EpisodeEngine
         transcode_settings = TranscodeSettingsLookup.find(metadata_sources['common'], transcode_settings_lookup_options)
         logger.debug { "Transcode Settings: #{transcode_settings}" }
 
+
         workflow_parameters['source_file_path'] = sfp
         #workflow_parameters['metadata_sources'] = metadata_sources
 
@@ -361,6 +362,7 @@ module EpisodeEngine
 
           return { :error => { :message => 'Transcode Settings Not Found' } }
         end
+        workflow_parameters = transcode_settings.merge(workflow_parameters)
 
         workflow_name = args['workflow_name'] || options[:submission_workflow_name] || DEFAULT_WORKFLOW_NAME
         fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
@@ -380,10 +382,8 @@ module EpisodeEngine
           workflow_parameters['epitask_file_name'] = task
           splits.each { |k,v| workflow_parameters[k] = v.shift }
 
-          #_params['workflow_name'] ||= 'EPISODE_ENGINE_SUBMISSION'
-          #_params['workflow_parameters'] ||= JSON.generate({:source_file_path => _params['source_file_path']})
 
-          #workflow['workflow_parameters'] ||= JSON.generate({:source_file_path => sfp})
+
 
           workflow = { 'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters) }
           submission_options = { :method => submission_method}
