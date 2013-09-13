@@ -125,11 +125,16 @@ module EpisodeEngine
           options = options.dup if options.respond_to?(:dup)
           @logger = options.delete(:logger) if options[:logger]
 
-          file_path = options.delete(:transcode_settings_file_path)
-          google_workbook_id = options.delete(:transcode_settings_google_workbook_id) { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
+          file_path = options.delete(:file_path)
+
+          google_workbook_id = options.delete(:google_workbook_id) { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
+          google_workbook_username = options.delete(:google_workbook_username)
+          google_workbook_password = options.delete(:google_workbook_password)
 
           transcode_settings_options = { }
           transcode_settings_options[:google_workbook_id] = google_workbook_id if google_workbook_id
+          transcode_settings_options[:username] = google_workbook_username
+          transcode_settings_options[:password] = google_workbook_password
           transcode_settings_options[:file_path] = file_path if file_path
 
           #@transcode_settings_table ||= self.build_transcode_settings_table(workbook_id, options)
@@ -269,7 +274,7 @@ module EpisodeEngine
         out[:message] = _response.message
         out[:content_type] = _response.content_type
 
-        _r = out[:body_as_hash]['response']
+        _r = out[:body_as_hash]['response'] || { }
         out[:job_id] = _r['stdout']
         out[:success] = _r['success']
         out
@@ -279,13 +284,14 @@ module EpisodeEngine
 
     DEFAULT_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION'
     DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION_TRANSCODE_SETTINGS_NOT_FOUND'
+    DEFAULT_MIG_EXECUTABLE_PATH = '/Users/admin/work/media_processing_tool/bin/mig'
 
     class <<self
       attr_accessor :logger
     end # self
 
     def self.mig(file_path, options = { })
-      executable_path = '/Users/admin/work/media_processing_tool/bin/mig'
+      executable_path = options[:executable_path] || DEFAULT_MIG_EXECUTABLE_PATH
       command_line = "#{executable_path} #{file_path}"
       _stdout, _stderr, _status = Open3.capture3(command_line)
       logger.debug { "Response from MIG:\n\tSTATUS: #{_status}\n\tSTDOUT: #{_stdout}\n\tSTDERR: #{_stderr}" }
@@ -304,12 +310,10 @@ module EpisodeEngine
         response_as_hash = Ubiquity::CommandLine.response_to_hash(_response)
       end
       response_as_hash
-    end
+    end # self.submit_workflow
 
-    def self.submit(args = { })
-
+    def self.submit(args = { }, options = { })
       logger.debug { "Submission Arguments: #{PP.pp(args, '')}" }
-
 
       #method = _params['method'] || :command_line
 
@@ -325,15 +329,20 @@ module EpisodeEngine
 
       responses = { }
 
+      transcode_settings_lookup_options = {
+        :google_workbook_username => options[:google_workbook_username],
+        :google_workbook_password => options[:google_workbook_password],
+        :google_workbook_id => options[:google_workbook_id]
+      }
+
       [*source_file_path].each do |sfp|
 
         # Execute MIG
-        metadata_sources = mig(sfp)
-
+        metadata_sources = mig(sfp, :executable_path => options[:mig_executable_file_path])
 
         # Determine Epitask(s)
         TranscodeSettingsLookup.logger = logger
-        transcode_settings = TranscodeSettingsLookup.find(metadata_sources['common'])
+        transcode_settings = TranscodeSettingsLookup.find(metadata_sources['common'], transcode_settings_lookup_options)
         logger.debug { "Transcode Settings: #{transcode_settings}" }
 
         workflow_parameters['source_file_path'] = sfp
@@ -342,7 +351,7 @@ module EpisodeEngine
         unless transcode_settings
 
           # No Match - Transcode Settings Were Not Found
-          workflow_name = DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
+          workflow_name = options[:submission_missing_lookup_workflow_name] || DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
 
           workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters)}
           submission_options = { :method => submission_method}
@@ -351,14 +360,14 @@ module EpisodeEngine
           return { :error => { :message => 'Transcode Settings Not Found' } }
         end
 
-        workflow_name = args['workflow_name'] ||= DEFAULT_WORKFLOW_NAME
-        fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
+        workflow_name = args['workflow_name'] || options[:submission_workflow_name] || DEFAULT_WORKFLOW_NAME
+        fields_to_split = [ 'epitask_file_name_source_directory', 'epitask_file_name', 'encoded_file_name_suffix' ]
 
         splits = { }
         fields_to_split.each do |field_name|
-          splits[field_name] = transcode_settings[field_name].split(',').map { |v| v.respond_to?(:strip) ? v.strip : v }
+          field_values = transcode_settings[field_name]
+          splits[field_name] = field_values ? field_values.split(',').map { |v| v.respond_to?(:strip) ? v.strip : v } : [ ]
         end
-
 
         tasks = splits.delete('epitask_file_name')
         logger.debug { "Tasks: #{tasks}"}
@@ -374,7 +383,7 @@ module EpisodeEngine
 
           #workflow['workflow_parameters'] ||= JSON.generate({:source_file_path => sfp})
 
-          workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters)}
+          workflow = { 'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters) }
           submission_options = { :method => submission_method}
           response_as_hash = submit_workflow(workflow, submission_options)
 
@@ -385,11 +394,6 @@ module EpisodeEngine
       logger.debug { "Ubiquity Submit Responding With: #{responses}"}
       responses
     end # self.submit
-
-
-    def initialize(args = { })
-
-    end # initialize
 
   end # Ubiquity
 

@@ -1,0 +1,6 @@
+--workbook-id=0AkcbJWkynMREdEV2RlZFZ0kzQmtsUXNXWXpNcE5RUUE
+--workbook-username=USERNAME
+--workbook-password=PASSWORD
+--ubiquity-submission-workflow-name=EPISODE_ENGINE_SUBMISSION
+--ubiquity-submission-missing-lookup-workflow-name=EPISODE_ENGINE_SUBMISSION_TRANSCODE_SETTINGS_NOT_FOUND
+--mig-path=/Users/admin/work/media_processing_tool/bin/mig

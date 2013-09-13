@@ -128,8 +128,21 @@ module EpisodeEngine
       if send_to_ubiquity
 
       else
+
+        host_address = search_hash!(_params, :host_address, { :ignore_strings => %w(_ -), :case_sensitive => false })
+        host_port = search_hash!(_params, :host_port, { :ignore_strings => %w(_ -), :case_sensitive => false })
+
+        if host_address || host_port
+          api_params = { }
+          api_params[:host_address] = host_address if host_address
+          api_params[:host_port] = host_port if host_port
+          api = self.initialize_api(api_params)
+        else
+          api = episode_api
+        end
+
         if arguments
-          _response = episode_api.submit_build_submission(arguments)
+          _response = api.submit_build_submission(arguments)
         else
           _response = { 'error' => { 'message' => 'arguments is a required argument.'}}
         end
@@ -176,24 +189,14 @@ module EpisodeEngine
       _params = merge_params_from_body(_params)
 
       Ubiquity.logger = logger
-      _response = Ubiquity.submit(_params)
+
+      _response = Ubiquity.submit(_params, settings.ubiquity_options)
       success = _response[:success]
 
       response = { :request => { :id => request_id.to_s }, :response => { :source => 'ubiquity', :content => _response }, :success => success }
       Requests.update(request_id, { :response => response[:response], :success => response[:success] })
       logger.debug { "Response: #{response}" }
       format_response(response)
-    end
-
-    def ubiquity_http_response_to_hash(response)
-      pp response
-      out = response
-      _response = out.delete(:response)
-      out[:code] = _response.code
-      out[:message] = _response.message
-      out[:content_type] = _response.content_type
-      out[:success] = out[:body_as_hash]['success']
-      out
     end
 
     post '/ubiquity' do
@@ -381,6 +384,27 @@ module EpisodeEngine
     def self.initialize_ubiquity(args = {})
       ubiquity_submission_method = args[:ubiquity_submission_method]
 
+      ubiquity_executable_path = args[:ubiquity_executable_path]
+      ubiquity_submission_workflow_name = args[:ubiquity_submission_workflow_name] || Ubiquity::DEFAULT_WORKFLOW_NAME
+      ubiquity_submission_missing_lookup_workflow_name = args[:ubiquity_submission_missing_lookup_workflow_name] || Ubiquity::DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
+
+      mig_executable_file_path = args[:mig_executable_file_path] || Ubiquity::DEFAULT_MIG_EXECUTABLE_PATH
+
+      workbook_username = args[:transcode_settings_workbook_username]
+      workbook_password = args[:transcode_settings_workbook_password]
+      google_workbook_id = args[:transcode_settings_google_workbook_id] || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
+      workbook_file_path = args[:transcode_settings_workbook_file_path]
+
+      ubiquity_options = {
+        :google_workbook_id => google_workbook_id,
+        :google_workbook_username => workbook_username,
+        :google_workbook_password => workbook_password,
+        :submission_workflow_name => ubiquity_submission_workflow_name,
+        :submission_missing_lookup_workflow_name => ubiquity_submission_missing_lookup_workflow_name,
+        :mig_executable_file_path => mig_executable_file_path
+      }
+
+      ubiquity_options
     end # self.initialize_ubiquity
 
     def self.init(args = {})
@@ -396,6 +420,10 @@ module EpisodeEngine
 
       api = initialize_api(args)
       set(:episode_api, api)
+
+      ubiquity_options = initialize_ubiquity(args)
+      set(:ubiquity_options, ubiquity_options)
+
     end # self.init
 
 
