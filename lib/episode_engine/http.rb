@@ -375,15 +375,21 @@ module EpisodeEngine
 
       _response = _request[:response]
       source_file_paths = _response[:content]
-      source_file_paths.each do |source_file_path, tasks|
+      source_file_paths.each do |source_file_path, data|
+        tasks = data[:tasks]
         task_responses = { }
         tasks.each do |task_name, task|
+
           job_id = task[:job_id]
           submission = get_ubiquity_job_status(job_id)
 
-          episode_parent_id = submission['_id']
-          episode_host = submission['host']
-          episode_job_status = episode_api.status_tasks('host' => episode_host, 'parent-id' => episode_parent_id) if episode_parent_id
+          if submission
+            episode_parent_id = submission['_id']
+            episode_host = submission['host']
+            episode_job_status = episode_api.status_tasks('host' => episode_host, 'parent-id' => episode_parent_id) if episode_parent_id
+          else
+            episode_job_status = { }
+          end
           task_responses[task_name] = { :ubiquity_submission => submission, :episode_submission => episode_job_status }
 
         end
