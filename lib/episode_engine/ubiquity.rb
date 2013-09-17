@@ -45,8 +45,8 @@ module EpisodeEngine
       TranscodeSettingsLookup.find(values_to_lookup, options)
     end # self.lookup_transcode_settings
 
-    def self.submit_source_file_path(source_file_path, workflow_name, workflow_parameters, options)
-      workflow_parameters['source_file_path'] = source_file_path
+    def self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
+      workflow_arguments['source_file_path'] = source_file_path
 
       submission_method = options[:submission_method] || :http
       # Execute MIG
@@ -64,13 +64,13 @@ module EpisodeEngine
         # No Match - Transcode Settings Were Not Found
         workflow_name = options[:submission_missing_lookup_workflow_name] || DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
 
-        workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters)}
+        workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_arguments)}
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
 
         return { :error => { :message => 'Transcode Settings Not Found' } }
       end
-      workflow_parameters = transcode_settings.merge(workflow_parameters)
+      workflow_arguments = transcode_settings.merge(workflow_arguments)
 
       fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
 
@@ -86,21 +86,21 @@ module EpisodeEngine
       task_responses = { }
       tasks.each do |task|
 
-        workflow_parameters['epitask_file_name'] = task
-        splits.each { |k,v| workflow_parameters[k] = v.shift }
+        workflow_arguments['epitask_file_name'] = task
+        splits.each { |k,v| workflow_arguments[k] = v.shift }
 
-        workflow = { 'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_parameters) }
+        workflow = { 'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_arguments) }
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
 
         task_responses[task] = response_as_hash
       end
-      task_responses
+      { :tasks => task_responses, :metadata_sources => metadata_sources }
     end # self.process_source_file_path
 
     # @param [Hash] args The parameters from the request
-    # @option args [String] workflow-name
-    # @option args [String] workflow-arguments
+    # @option args [String] workflow_name
+    # @option args [String] workflow_arguments
     # @param [Hash] options Options for this request
     # @option options [Symbol] :submission_method
     # @option options [String] :submission_workflow_name
@@ -108,19 +108,24 @@ module EpisodeEngine
     # @option options [String] :google_workbook_password
     # @option options [String] :google_workbook_id
     def self.submit(args = { }, options = { })
+      args = args.dup
+      options = options.dup
+
       logger.debug { "Submission Arguments: #{PP.pp(args, '')}" }
       #method = _params['method'] || :command_line
 
-      workflow_name = args['workflow_name'] || args['workflow-name'] || options[:submission_workflow_name] || DEFAULT_WORKFLOW_NAME
+      workflow_name = search_hash!(args, :workflow_name, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      workflow_name ||= options[:submission_workflow_name] || DEFAULT_WORKFLOW_NAME
 
-      workflow_parameters_json = args['workflow-arguments'] || args['workflow_arguments'] || args['workflow_parameters'] || args['workflow-parameters']
-      workflow_parameters = JSON.parse(workflow_parameters_json) if workflow_parameters_json.is_a?(String)
-      workflow_parameters ||= { }
-      source_file_path = workflow_parameters['source_file_path'] || workflow_parameters['source-file-path']
+      workflow_arguments_json = search_hash!(args, :workflow_arguments, :workflow_parameters, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      workflow_arguments = JSON.parse(workflow_arguments_json) if workflow_arguments_json.is_a?(String)
+      workflow_arguments ||= { }
 
-      source_file_path ||= args['source_file_path'] || args['source-file-path']
+      source_file_path = search_hash!(:source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      source_file_path ||= search_hash!(args, :source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
       logger.debug { "Source File Path: #{source_file_path}" }
 
+      args.each { |k, v| workflow_arguments[k] = v }
 
       #options[:submission_method] = args['method'] || :command_line
       options[:submission_method] = args['method'] || :http
@@ -135,7 +140,7 @@ module EpisodeEngine
       # Submit each source file path separately and record it's response separately
       responses = { }
       [*source_file_path].each do |sfp|
-        response = self.submit_source_file_path(source_file_path, workflow_name, workflow_parameters, options)
+        response = self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
         responses[sfp] = response
       end
 
