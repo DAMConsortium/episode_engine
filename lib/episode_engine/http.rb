@@ -24,10 +24,11 @@ module EpisodeEngine
 
         attr_accessor :db
 
-        def insert(request_detail, subject = nil)
+        def insert(request_detail, subject = nil, system = :episode)
           record = { }
           record[:type] = 'request'
           record[:subject] = subject
+          record[:system] = system
           record[:action] = METHOD_TO_ACTION[request_detail[:request_method]]
           record[:status] = 'new'
           record[:content] = request_detail
@@ -78,7 +79,7 @@ module EpisodeEngine
       request_as_hash = request_to_hash
       request_as_hash[:route] = route.to_s
       request_as_hash[:system] = system.to_s
-      id = Requests.insert(request_as_hash, subject)
+      id = Requests.insert(request_as_hash, subject, system)
       id
     end # record_request
 
@@ -129,17 +130,7 @@ module EpisodeEngine
 
       else
 
-        host_address = search_hash!(_params, :host_address, { :ignore_strings => %w(_ -), :case_sensitive => false })
-        host_port = search_hash!(_params, :host_port, { :ignore_strings => %w(_ -), :case_sensitive => false })
-
-        if host_address || host_port
-          api_params = { }
-          api_params[:host_address] = host_address if host_address
-          api_params[:host_port] = host_port if host_port
-          api = self.initialize_api(api_params)
-        else
-          api = episode_api
-        end
+        api = episode_api(_params)
 
         if arguments
           _response = api.submit_build_submission(arguments)
@@ -173,8 +164,16 @@ module EpisodeEngine
     get '/requests/:id' do
       log_request_match(__method__)
       id = params['id']
-      response = Requests.find_by_id(id)
-      #response = Requests.find_all
+      _request = Requests.find_by_id(id)
+
+      system_name = _request[:system]
+      system_response = case system_name
+                        when :ubiquity; process_ubiquity_job_status_request(_request)
+                        else; { }
+      end
+      response = _request
+      response[:latest_status] = system_response
+
       logger.debug { "Response Finding Request #{id}: #{response}" }
       format_response(response)
     end
@@ -182,11 +181,13 @@ module EpisodeEngine
 
 
     ### UBIQUITY ROUTES BEGIN
+
+    # Builds a workflow using the default workflow name.
+    # Requires source_file_path
     post '/ubiquity/submit' do
       log_request_match(__method__)
       request_id = record_request(:job, :ubiquity, __method__)
-      _params = params.dup
-      _params = merge_params_from_body(_params)
+      _params = merge_params_from_body
 
       Ubiquity.logger = logger
 
@@ -199,24 +200,21 @@ module EpisodeEngine
       format_response(response)
     end
 
+    # Passthrough for submitting ubiquity jobs
+    # Requires that workflow-name and optionally workflow-parameters be defined
     post '/ubiquity' do
       log_request_match(__method__)
       request_id = record_request(:job, :ubiquity, __method__)
-      _params = params.dup
-      _params = merge_params_from_body(_params)
+      _params = merge_params_from_body
 
-      method = _params[:method] || :command_line
-      if method == :http
-        response = Ubiquity::HTTP.submit(_params)
-      else
-        response = Ubiquity::CommandLine.submit(_params)
-      end
-      format_response(response)
+      _response = Ubiquity::Submitter.submit(_params)
+      format_response(_response)
     end
     ### UBIQUITY ROUTES END
 
+    # Shows what gems are within scope. Used for diagnostics and troubleshooting.
     get '/gems' do
-      cmd_line = 'gem list'
+      cmd_line = 'gem list -b'
       stdout_str, stderr_str, status = Open3.capture3(cmd_line)
       #response = { :stdout => stdout_str, :stderr => stderr_str, :status => status, :success => status.success? }
       stdout_str.gsub("\n", '<br/>')
@@ -254,7 +252,12 @@ module EpisodeEngine
        _response
     end # output_response
 
+    # Will try to convert a body to parameters and merge them into the params hash
+    # Params will override the body parameters
+    #
+    # @params [Hash] _params (params) The parameters parsed from the query and form fields
     def merge_params_from_body(_params = params)
+      _params = _params.dup
       if request.media_type == 'application/json'
         request.body.rewind
         body_contents = request.body.read
@@ -362,6 +365,51 @@ module EpisodeEngine
 
     end # process_request
 
+    def get_ubiquity_job_status(job_id)
+      @sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
+      @sm.submission_get_by_ubiquity_job_id(job_id).first
+    end # get_ubiquity_job_status
+
+    def process_ubiquity_job_status_request(_request)
+      out = { }
+
+      _response = _request[:response]
+      source_file_paths = _response[:content]
+      source_file_paths.each do |source_file_path, tasks|
+        task_responses = { }
+        tasks.each do |task_name, task|
+          job_id = task[:job_id]
+          submission = get_ubiquity_job_status(job_id)
+
+          episode_parent_id = submission['id']
+          episode_host = submission['host']
+          episode_job_status = episode_api.status_tasks('host' => episode_host, 'parent-id' => episode_parent_id) if episode_parent_id
+          task_responses[task_name] = { :ubiquity_submission => submission, :episode_submission => episode_job_status }
+
+        end
+        out[source_file_path] = task_responses
+      end
+      pp out
+      return out
+    end # ubiquity_request_status
+
+    def episode_api(_params = nil)
+      return default_episode_api unless _params
+
+      host_address = search_hash!(_params, :host_address, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      host_port = search_hash!(_params, :host_port, { :ignore_strings => %w(_ -), :case_sensitive => false })
+
+      if host_address || host_port
+        api_params = { }
+        api_params[:host_address] = host_address if host_address
+        api_params[:host_port] = host_port if host_port
+        api = self.initialize_api(api_params)
+      else
+        api = default_episode_api
+      end
+      api
+    end
+
     def self.initialize_db(args = {})
       db = EpisodeEngine::Database::Mongo.new(args)
       #db_client = ::Mongo::MongoClient.new(args[:database_host_name], args[:database_port])
@@ -419,7 +467,7 @@ module EpisodeEngine
       set(:db, db)
 
       api = initialize_api(args)
-      set(:episode_api, api)
+      set(:default_episode_api, api)
 
       ubiquity_options = initialize_ubiquity(args)
       set(:ubiquity_options, ubiquity_options)
@@ -443,7 +491,7 @@ module EpisodeEngine
     attr_accessor :requests
 
     #
-    attr_accessor :episode_api
+    attr_accessor :default_episode_api
 
     ## @param [Hash] args
     ## @option args [Logger] :logger
@@ -461,7 +509,7 @@ module EpisodeEngine
       requests_db.collection = 'requests'
       Requests.db = requests_db
 
-      @episode_api = self.class.episode_api
+      @default_episode_api = self.class.default_episode_api
 
       super
     end # initialize
