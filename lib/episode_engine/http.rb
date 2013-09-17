@@ -381,7 +381,7 @@ module EpisodeEngine
           job_id = task[:job_id]
           submission = get_ubiquity_job_status(job_id)
 
-          episode_parent_id = submission['id']
+          episode_parent_id = submission['_id']
           episode_host = submission['host']
           episode_job_status = episode_api.status_tasks('host' => episode_host, 'parent-id' => episode_parent_id) if episode_parent_id
           task_responses[task_name] = { :ubiquity_submission => submission, :episode_submission => episode_job_status }
@@ -389,7 +389,6 @@ module EpisodeEngine
         end
         out[source_file_path] = task_responses
       end
-      pp out
       return out
     end # ubiquity_request_status
 
