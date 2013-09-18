@@ -194,7 +194,7 @@ module EpisodeEngine
       _params = merge_params_from_body
 
       submitter_ip = request.ip
-      submitter_host = request.host
+      submitter_host = request.env['REMOTE_HOST']
       submitter_address = submitter_host || submitter_ip
 
       submitter_id = search_hash!(_params, :submitter_id, { :ignore_strings => %w(_ -), :case_sensitive => false })
