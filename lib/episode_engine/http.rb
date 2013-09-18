@@ -113,6 +113,10 @@ module EpisodeEngine
       log_request_match(__method__)
     end
 
+    get '/jobs' do
+
+    end
+
     get '/jobs/cancel/:job_id' do
 
     end
@@ -188,6 +192,18 @@ module EpisodeEngine
       log_request_match(__method__)
       request_id = record_request(:job, :ubiquity, __method__)
       _params = merge_params_from_body
+
+      submitter_ip = request.ip
+      submitter_host = request.host
+      submitter_address = submitter_host || submitter_ip
+
+      submitter_id = search_hash!(_params, :submitter_id, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      submitter_id ||= submitter_address
+
+      _params[:submitter_ip] = submitter_ip
+      _params[:submitter_host] = submitter_host
+      _params[:submitter_address] = submitter_address
+      _params[:submitter_id] = submitter_id
 
       Ubiquity.logger = logger
 
@@ -378,6 +394,7 @@ module EpisodeEngine
       source_file_paths.each do |source_file_path, data|
         tasks = data[:tasks]
         task_responses = { }
+
         tasks.each do |task_name, task|
 
           job_id = task[:job_id]
