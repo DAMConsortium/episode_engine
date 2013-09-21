@@ -1,6 +1,7 @@
 require 'json'
 require 'logger'
 require 'open3'
+require 'shellwords'
 require 'uri'
 
 require 'episode_engine/ubiquity/submitter'
@@ -25,7 +26,7 @@ module EpisodeEngine
 
     def self.mig(file_path, options = { })
       executable_path = options[:executable_path] || DEFAULT_MIG_EXECUTABLE_PATH
-      command_line = "#{executable_path} #{file_path}"
+      command_line = [ executable_path, file_path].shelljoin
       _stdout, _stderr, _status = Open3.capture3(command_line)
       logger.debug { "Response from MIG:\n\tSTATUS: #{_status}\n\tSTDOUT: #{_stdout}\n\tSTDERR: #{_stderr}" }
       metadata_sources = JSON.parse(_stdout)
@@ -121,8 +122,8 @@ module EpisodeEngine
       workflow_arguments = JSON.parse(workflow_arguments_json) if workflow_arguments_json.is_a?(String)
       workflow_arguments ||= { }
 
-      source_file_path = search_hash!(:source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
-      source_file_path ||= search_hash!(args, :source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      source_file_path = search_hash!(args, :source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      source_file_path ||= search_hash!(workflow_arguments, :source_file_path, { :ignore_strings => %w(_ -), :case_sensitive => false })
       logger.debug { "Source File Path: #{source_file_path}" }
 
       args.each { |k, v| workflow_arguments[k] = v }
