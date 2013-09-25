@@ -69,7 +69,7 @@ module EpisodeEngine
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
 
-        return { :error => { :message => 'Transcode Settings Not Found' } }
+        return { :error => { :message => 'Transcode Settings Not Found' }, :metadata_sources => metadata_sources, :tasks => { } }
       end
       workflow_arguments = transcode_settings.merge(workflow_arguments)
 
