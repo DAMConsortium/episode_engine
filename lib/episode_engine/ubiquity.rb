@@ -18,18 +18,37 @@ module EpisodeEngine
 
     DEFAULT_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION'
     DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME = 'EPISODE_ENGINE_SUBMISSION_TRANSCODE_SETTINGS_NOT_FOUND'
-    DEFAULT_MIG_EXECUTABLE_PATH = '/Users/admin/work/media_processing_tool/bin/mig'
+    DEFAULT_MIG_EXECUTABLE_PATH = '/Library/Scripts/ubiquity/media_processing_tool/bin/mig'
 
     class <<self
       attr_accessor :logger
+
     end # self
 
+    # @param [String] cmd_line The command line to execute
+    # @return [Hash] { :stdout => [String], :stderr => [String], :status => [Object], :success => [Boolean] }
+    def self.execute(cmd_line)
+      begin
+        stdout_str, stderr_str, status = Open3.capture3(cmd_line)
+        logger.error "Error Executing #{cmd_line}. Stdout: #{stdout_str} Stderr: #{stderr_str}" unless status.success?
+        return { :stdout => stdout_str, :stderr => stderr_str, :status => status, :success => status.success? }
+      rescue
+        logger.error { "Error Executing '#{cmd_line}'. Exception: #{$!} @ #{$@} STDOUT: '#{stdout_str}' STDERR: '#{stderr_str}' Status: #{status.inspect}" }
+        return { :stdout => stdout_str, :stderr => stderr_str, :status => status, :success => false }
+      end
+    end # execute
+
     def self.mig(file_path, options = { })
-      executable_path = options[:executable_path] || DEFAULT_MIG_EXECUTABLE_PATH
-      command_line = [ executable_path, file_path].shelljoin
-      _stdout, _stderr, _status = Open3.capture3(command_line)
-      logger.debug { "Response from MIG:\n\tSTATUS: #{_status}\n\tSTDOUT: #{_stdout}\n\tSTDERR: #{_stderr}" }
-      metadata_sources = JSON.parse(_stdout)
+      raise Errno::ENOENT, "File Not Found. File Path: '#{file_path}'" unless File.exist?(file_path)
+
+      executable_path = options[:executable_path] || options[:mig_executable_file_path] || DEFAULT_MIG_EXECUTABLE_PATH
+      raise Errno::ENOENT, "Executable File Path Not Found. File Path: '#{executable_path}'" unless File.exist?(executable_path)
+
+      command_line = [ executable_path, file_path ].shelljoin
+      response = execute(command_line)
+      logger.debug { "Response from MIG:\n\tSTATUS: #{response[:status]}\n\tSTDOUT: #{response[:stdout]}\n\tSTDERR: #{response[:stderr]}" }
+      return response unless response[:status]
+      metadata_sources = JSON.parse(response[:stdout])
       metadata_sources
     end # self.mig
 

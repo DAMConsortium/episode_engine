@@ -205,8 +205,6 @@ module EpisodeEngine
       _params[:submitter_address] = submitter_address
       _params[:submitter_id] = submitter_id
 
-      Ubiquity.logger = logger
-
       _response = Ubiquity.submit(_params, settings.ubiquity_options)
       success = _response[:success]
 
@@ -226,6 +224,23 @@ module EpisodeEngine
       _response = Ubiquity::Submitter.submit(_params)
       format_response(_response)
     end
+
+    post '/ubiquity/mig' do
+      log_request_match(__method__)
+      _params = merge_params_from_body
+      _response = { }
+      file_paths = _params[:file_paths]
+      logger.debug { "File Paths: #{file_paths}" }
+      [*file_paths].each do |file_path|
+        logger.debug { "Processing File Path: #{file_path}" }
+        begin
+          _response[file_path] = Ubiquity.mig(file_path, settings.ubiquity_options)
+        rescue => e
+          _response[file_path] = {:exception => {:message => e.message, :backtrace => e.backtrace}}
+        end
+      end
+      format_response(_response)
+    end
     ### UBIQUITY ROUTES END
 
     # Shows what gems are within scope. Used for diagnostics and troubleshooting.
@@ -235,7 +250,6 @@ module EpisodeEngine
       #response = { :stdout => stdout_str, :stderr => stderr_str, :status => status, :success => status.success? }
       stdout_str.gsub("\n", '<br/>')
     end
-
 
     ### CATCH ALL ROUTES BEGIN
     get /.*/ do
@@ -287,7 +301,7 @@ module EpisodeEngine
           end
         end
       end
-      _params
+      indifferent_hash.merge(_params)
     end # merge_params_from_body
 
     def request_to_hash(_request = request)
@@ -492,6 +506,7 @@ module EpisodeEngine
       set(:default_episode_api, api)
 
       ubiquity_options = initialize_ubiquity(args)
+      Ubiquity.logger = logger
       set(:ubiquity_options, ubiquity_options)
 
     end # self.init
