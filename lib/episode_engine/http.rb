@@ -123,13 +123,7 @@ module EpisodeEngine
         type = 'all'
         date_from = date_to = nil
       end
-
-
-
-
-
-
-
+    end
 
     # Builds a workflow using the default workflow name.
     # Requires source_file_path
