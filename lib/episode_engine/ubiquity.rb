@@ -63,15 +63,23 @@ module EpisodeEngine
     end # self.submit_workflow
 
     def self.lookup_transcode_settings(values_to_lookup, options = { })
-      TranscodeSettingsLookup.find(values_to_lookup, options)
+      result = TranscodeSettingsLookup.find(values_to_lookup, options)
+      result[:match_log] = TranscodeSettingsLookup.match_log
+      result
     end # self.lookup_transcode_settings
 
     def self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
       workflow_arguments['source_file_path'] = source_file_path
 
+      return { :error => { :message => 'Source File Path Not Found.' } }
+
       submission_method = options[:submission_method] || :http
       # Execute MIG
-      metadata_sources = mig(source_file_path, :executable_path => options[:mig_executable_file_path])
+      begin
+        metadata_sources = mig(source_file_path, :executable_path => options[:mig_executable_file_path])
+      rescue => e
+        return { :error => { :message => 'Error Executing Mig.', :exception => e } }
+      end
 
       # Determine Epitask(s)
       transcode_settings_lookup_options = options[:transcode_settings_lookup]
