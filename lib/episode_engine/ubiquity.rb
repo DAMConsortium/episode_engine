@@ -80,6 +80,7 @@ module EpisodeEngine
       workflow_arguments['source_file_path'] = source_file_path
 
       return { :error => { :message => 'Source File Path Not Found.' } } unless File.exists?(source_file_path)
+      return { :error => { :message => 'Cannot Read Source File. Check the File\'s Permissions.' } } unless File.readable?(source_file_path)
 
       submission_method = options[:submission_method] || :http
       # Execute MIG
