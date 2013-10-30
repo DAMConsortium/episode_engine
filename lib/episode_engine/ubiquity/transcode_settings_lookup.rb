@@ -15,7 +15,7 @@ module EpisodeEngine
 
       class << self
 
-        attr_writer :logger, :match_log
+        attr_writer :logger
 
         def logger
           @logger ||= Logger.new(STDOUT)
@@ -23,6 +23,9 @@ module EpisodeEngine
 
         attr_accessor :options
         attr_accessor :workbook_id
+
+        attr_reader :match_log
+        attr_reader :match_found
 
         def log_match_result(log_str)
           logger.debug { "\t#{log_str}" }
@@ -85,6 +88,7 @@ module EpisodeEngine
           logger.debug { "Searching Map For:   #{values_to_look_for}" }
           match = nil
           @match_log = [ ]
+          @match_found = false
           map.each_with_index do |map_entry, idx|
             logger.debug { "Searching Map Entry (#{idx + 1}): #{map_entry}" }
             match_failed = nil
@@ -108,6 +112,7 @@ module EpisodeEngine
               end
             end
             unless match_failed
+              @match_found = true
               match = map_entry
               break
             end
