@@ -117,7 +117,7 @@ module EpisodeEngine
               break
             end
           end
-          log_match_result("Match #{match ? 'Not ' : ''}Found.")
+          log_match_result("Match #{match_found ? '' : 'Not '}Found.")
           match
         end # transcode_settings_lookup
 
