@@ -4,6 +4,7 @@ require 'open3'
 require 'shellwords'
 require 'uri'
 
+require 'episode_engine/ubiquity/status_tracker'
 require 'episode_engine/ubiquity/submitter'
 require 'episode_engine/ubiquity/submission_manager'
 require 'episode_engine/ubiquity/transcode_settings_lookup'
@@ -96,8 +97,9 @@ module EpisodeEngine
         workflow = {'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_arguments)}
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
-
-        return { :error => { :message => 'Transcode Settings Not Found' }, :metadata_sources => metadata_sources, :ubiquity_submission => response_as_hash }
+        job_id = response_as_hash[:job_id]
+        submission = { :workflow => { :name => workflow_name, :arguments => workflow_arguments }, :method => submission_method, :response => response_as_hash, :job_id => job_id }
+        return { :error => { :message => 'Transcode Settings Not Found' }, :metadata_sources => metadata_sources, :submission => submission }
       end
       workflow_arguments = transcode_settings.merge(workflow_arguments)
 
@@ -122,7 +124,10 @@ module EpisodeEngine
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
 
-        task_responses[task] = response_as_hash
+        job_id = response_as_hash[:job_id]
+        submission = { :submission => { :workflow => { :name => workflow_name, :arguments => workflow_arguments }, :method => submission_method, :response => response_as_hash, :job_id => job_id }}
+        submission[:job_id] = job_id if job_id
+        task_responses[task] = submission
       end
       { :tasks => task_responses, :metadata_sources => metadata_sources }
     end # self.process_source_file_path
@@ -176,6 +181,41 @@ module EpisodeEngine
       logger.debug { "Ubiquity Submit Responding With: #{responses}"}
       responses
     end # self.submit
+
+    def self.get_jobs_from_response(response)
+      #puts "GETTING JOBS FROM RESPONSE: #{PP.pp(response, '')}"
+      jobs = { }
+      response.each do |source_file_path, result|
+        tasks = result[:tasks]
+        if tasks
+          tasks.each do |key, task|
+            job_id = task[:job_id]
+            if job_id
+
+              workflow = task[:workflow]
+
+              submission = task[:submission]
+              workflow ||= submission[:workflow] if submission
+
+              jobs[job_id] = { :id => job_id, :workflow => workflow, :source_file_path => source_file_path, :task => { key => task } }
+            end
+          end
+        else
+          key = :submission
+          task = result[key]
+          logger.debug { "LOOKING FOR KEY #{key} (#{task ? '' : 'NOT ' }FOUND) IN JOB RESPONSE RESULT #{result}" }
+          if task
+            job_id = task[:job_id]
+            if job_id
+              job = { :id => job_id, :workflow => task[:workflow], :source_file_path => source_file_path, :task => { key => task } }
+              logger.debug { "Adding JOB #{job_id} to JOBS. #{job}"}
+              jobs[job_id] = job
+            end
+          end
+        end
+      end
+      jobs
+    end # self.get_jobs_from_response
 
   end # Ubiquity
 

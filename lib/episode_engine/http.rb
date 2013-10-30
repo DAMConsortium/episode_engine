@@ -229,6 +229,19 @@ module EpisodeEngine
        _response
     end # output_response
 
+    def params_from_body
+      if request.media_type == 'application/json'
+        request.body.rewind
+        body_contents = request.body.read
+        logger.debug { "Parsing: '#{body_contents}'" }
+        if body_contents
+          json_params = JSON.parse(body_contents)
+          return json_params
+        end
+      end
+
+    end
+
     # Will try to convert a body to parameters and merge them into the params hash
     # Params will override the body parameters
     #
