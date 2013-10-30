@@ -4,7 +4,7 @@ require 'open3'
 require 'shellwords'
 require 'uri'
 
-require 'episode_engine/ubiquity/status_tracker'
+#require 'episode_engine/ubiquity/status_tracker'
 require 'episode_engine/ubiquity/submitter'
 require 'episode_engine/ubiquity/submission_manager'
 require 'episode_engine/ubiquity/transcode_settings_lookup'
