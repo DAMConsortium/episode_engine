@@ -71,7 +71,7 @@ module EpisodeEngine
     def self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
       workflow_arguments['source_file_path'] = source_file_path
 
-      return { :error => { :message => 'Source File Path Not Found.' } }
+      return { :error => { :message => 'Source File Path Not Found.' } } unless File.exists?(source_file_path)
 
       submission_method = options[:submission_method] || :http
       # Execute MIG
