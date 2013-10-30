@@ -85,12 +85,12 @@ module EpisodeEngine
         end
 
         def transcode_settings_lookup(values_to_look_for, map)
-          logger.debug { "Searching Map For:   #{values_to_look_for}" }
           match = nil
           @match_log = [ ]
           @match_found = false
+          log_match_result("Searching Map For:   #{values_to_look_for}")
           map.each_with_index do |map_entry, idx|
-            logger.debug { "Searching Map Entry (#{idx + 1}): #{map_entry}" }
+            log_match_result("Searching Map Entry (#{idx + 1}): #{map_entry}")
             match_failed = nil
             values_to_look_for.each do |field_name, field_value|
               map_entry_value = map_entry[field_name]
@@ -117,7 +117,7 @@ module EpisodeEngine
               break
             end
           end
-          logger.debug { "Match #{match ? 'Not ' : ''}Found."}
+          log_match_result("Match #{match ? 'Not ' : ''}Found.")
           match
         end # transcode_settings_lookup
 
