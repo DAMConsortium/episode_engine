@@ -96,7 +96,7 @@ module EpisodeEngine
 
       #workflow_parameters['metadata_sources'] = metadata_sources
 
-      if transcode_settings_match_found
+      unless transcode_settings_match_found
 
         # No Match - Transcode Settings Were Not Found
         workflow_name = options[:submission_missing_lookup_workflow_name] || DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
