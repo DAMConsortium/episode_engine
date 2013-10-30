@@ -65,9 +65,16 @@ module EpisodeEngine
 
     def self.lookup_transcode_settings(values_to_lookup, options = { })
       result = TranscodeSettingsLookup.find(values_to_lookup, options)
-      result[:match_log] = TranscodeSettingsLookup.match_log
       result
     end # self.lookup_transcode_settings
+
+    def self.transcode_settings_match_found
+      TranscodeSettingsLookup.match_found
+    end
+
+    def self.transcode_settings_match_log
+      TranscodeSettingsLookup.match_log
+    end
 
     def self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
       workflow_arguments['source_file_path'] = source_file_path
@@ -89,7 +96,7 @@ module EpisodeEngine
 
       #workflow_parameters['metadata_sources'] = metadata_sources
 
-      if transcode_settings.empty?
+      if transcode_settings_match_found
 
         # No Match - Transcode Settings Were Not Found
         workflow_name = options[:submission_missing_lookup_workflow_name] || DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME
@@ -99,8 +106,12 @@ module EpisodeEngine
         response_as_hash = submit_workflow(workflow, submission_options)
         job_id = response_as_hash[:job_id]
         submission = { :workflow => { :name => workflow_name, :arguments => workflow_arguments }, :method => submission_method, :response => response_as_hash, :job_id => job_id }
-        return { :error => { :message => 'Transcode Settings Not Found' }, :metadata_sources => metadata_sources, :submission => submission }
+        #submission = response_as_hash.merge({ :workflow => { :name => workflow_name, :arguments => workflow_arguments }})
+        return { :error => { :message => 'Transcode Settings Not Found' }, :metadata_sources => metadata_sources, :submission => submission, :transcode_settings_match_log => transcode_settings_match_log }
       end
+
+      transcode_settings[:match_log] = transcode_settings_match_log
+
       workflow_arguments = transcode_settings.merge(workflow_arguments)
 
       fields_to_split = [ 'epitask_file_name', 'encoded_file_name_suffix' ]
@@ -124,10 +135,12 @@ module EpisodeEngine
         submission_options = { :method => submission_method}
         response_as_hash = submit_workflow(workflow, submission_options)
 
+        #submission = response_as_hash.merge({ :method => submission_method, :workflow => { :name => workflow_name, :arguments => workflow_arguments }})
         job_id = response_as_hash[:job_id]
         submission = { :submission => { :workflow => { :name => workflow_name, :arguments => workflow_arguments }, :method => submission_method, :response => response_as_hash, :job_id => job_id }}
         submission[:job_id] = job_id if job_id
         task_responses[task] = submission
+        #task_responses[task] = { :submission => :workflow => { :name => workflow_name, :arguments => workflow_arguments } }
       end
       { :tasks => task_responses, :metadata_sources => metadata_sources }
     end # self.process_source_file_path
