@@ -33,7 +33,11 @@ module EpisodeEngine
         find({ })
       end # find_all
 
-      def find(*args); Mongoize.from_mongo(col.find(Mongoize.to_mongo(*args)).to_a) end # find
+      def find(selector, options = { });
+
+        Mongoize.from_mongo(col.find(Mongoize.to_mongo(selector, :invalid_chr_patter => /^\./), options).to_a)
+
+      end # find
 
       def find_one(*args); Mongoize.from_mongo(col.find_one(Mongoize.to_mongo(*args))) end # find_one
 
@@ -55,6 +59,92 @@ module EpisodeEngine
 
     end # Mongo
 
+    module Helpers
+
+      class Common
+
+        class << self
+
+          attr_accessor :db
+
+          def update(id, data, options = { })
+            data['modified_at'] = Time.now.to_i
+            query = options[:query] || {'_id' => id }
+
+            unless data.has_key?('_id')
+              data = { '$set' => data }
+            end
+
+            db.update(query, data)
+          end # update
+
+          def find_by_id(id)
+            db.find_one('_id' => BSON::ObjectId(id))
+          end # find_by_id
+
+          def find(*args)
+            db.find(*args)
+          end # find
+
+          def find_all
+            self.find({ })
+          end # find_all
+
+        end # self
+
+
+      end # Common
+
+      class Jobs < Common
+        class << self
+
+          def insert(host, id, record = { })
+            record['type'] = 'job'
+            record['host'] = 'host'
+            record['history'] = { }
+            db.insert(record)
+          end # insert
+
+          def db=(_db)
+            _db.collection = 'jobs'
+            @db = _db
+          end
+
+        end # self
+      end # Jobs
+
+      class Requests < Common
+
+        METHOD_TO_ACTION = { 'POST' => :create, 'PUT' => :update, 'DELETE' => :delete, 'GET' => :retrieve }
+        class << self
+
+
+          def insert(request_detail, subject = nil, system = :episode)
+            record = { }
+            record['type'] = 'request'
+            record['subject'] = subject
+            record['system'] = system
+            record['action'] = METHOD_TO_ACTION[request_detail[:request_method]]
+            record['status'] = 'new'
+            record['content'] = request_detail
+
+            record['created_at'] =
+                record['modified_at'] = Time.now.to_i
+
+            id = db.insert(record)
+            id
+          end # insert
+
+          def db=(_db)
+            _db.collection = 'requests'
+            @db = _db
+          end # db=
+
+        end # self
+
+      end # Requests
+
+    end # Helpers
 
   end # Database
 

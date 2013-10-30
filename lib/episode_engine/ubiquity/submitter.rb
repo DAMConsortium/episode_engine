@@ -1,4 +1,4 @@
-require 'episode_engine/ubiquity/submitter/cli'
+require 'episode_engine/ubiquity/submitter/command_line'
 require 'episode_engine/ubiquity/submitter/http'
 module EpisodeEngine
 

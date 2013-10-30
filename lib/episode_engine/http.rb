@@ -7,85 +7,46 @@ require 'episode_engine'
 require 'episode_engine/api/adapters/xmlrpc'
 require 'episode_engine/database'
 require 'episode_engine/ubiquity'
-require 'episode_engine/poller'
 
 module EpisodeEngine
 
   class HTTP < Sinatra::Base
 
-    class Jobs
-
-    end # Jobs
-
-    class Requests
-
-      METHOD_TO_ACTION = { 'POST' => :create, 'PUT' => :update, 'DELETE' => :delete, 'GET' => :retrieve }
-      class << self
-
-        attr_accessor :db
-
-        def insert(request_detail, subject = nil, system = :episode)
-          record = { }
-          record[:type] = 'request'
-          record[:subject] = subject
-          record[:system] = system
-          record[:action] = METHOD_TO_ACTION[request_detail[:request_method]]
-          record[:status] = 'new'
-          record[:content] = request_detail
-
-          record[:created_at] =
-          record[:modified_at] = Time.now.to_i
-
-          id = db.insert(record)
-          id
-        end # insert
-
-        def update(id, data, options = { })
-          data[:modified_at] = Time.now.to_i
-          query = options[:query] || {'_id' => id }
-
-          unless data.has_key?('_id')
-            data = { '$set' => data }
-          end
-
-          db.update(query, data)
-        end # update
-
-        def find_by_id(id)
-          db.find_one('_id' => BSON::ObjectId(id))
-        end # find_by_id
-
-        def find(*args)
-          db.find(*args)
-        end # find
-
-        def find_all
-          find({ })
-        end # find_all
-
-
-      end # << self
-
-    end # Requests
-
-    DEFAULT_DATABASE_NAME = 'EpisodeEngine'
+    # Just a short cut to the Database::DEFAULT_DATABASE_NAME
+    DEFAULT_DATABASE_NAME = Database::DEFAULT_DATABASE_NAME
 
     configure :development do
       #enable :logging
       #register Sinatra::Reloader
     end
 
-    def record_request(subject, system = nil, route = nil)
-      request_as_hash = request_to_hash
-      request_as_hash[:route] = route.to_s
-      request_as_hash[:system] = system.to_s
-      id = Requests.insert(request_as_hash, subject, system)
-      id
-    end # record_request
-
-
     ## ROUTES BEGIN ####################################################################################################
     before { log_request }
+
+    ### REQUEST ROUTES BEGIN
+    get '/requests' do
+      log_request_match(__method__)
+      requests = Database::Helpers::Requests.find_all
+      format_response({ :requests => requests })
+    end
+
+    get '/requests/:id' do
+      log_request_match(__method__)
+      id = params['id']
+      _request = Database::Helpers::Requests.find_by_id(id)
+
+      system_name = search_hash(_request, :system)
+      system_response = case system_name
+                          when :ubiquity; process_ubiquity_job_status_request(_request)
+                          else; { }
+                        end
+      response = _request
+      response[:latest_status] = system_response
+
+      logger.debug { "Response Finding Request #{id}: #{response}" }
+      format_response(response)
+    end
+    ### REQUEST ROUTES END
 
     ### API ROUTES BEGIN
     post '/api' do
@@ -107,7 +68,7 @@ module EpisodeEngine
     end
     ### API ROUTES END
 
-    ### JOB ROUTES BEGIN
+    ### EPISODE JOB ROUTES BEGIN
 
     get '/jobs/:job_id' do
       log_request_match(__method__)
@@ -146,45 +107,29 @@ module EpisodeEngine
       error = _response['error']
       error_occurred = error.respond_to?(:empty?) ? !error.empty? : !!error
 
-
       response = { :request => { :id => request_id.to_s }, :response => { :source => 'episode', :content => _response.inspect }, :success => !error_occurred }
-      Requests.update(request_id, { :response => response[:response], :success => response[:success] })
+      Database::Helpers::Requests.update(request_id, { :response => response[:response], :success => response[:success] })
       format_response(response)
     end
-
-    put '/jobs/:id' do
-      log_request_match(__method__)
-
-    end
-    ### JOB ROUTES END
-
-    ### REQUEST ROUTES BEGIN
-    get '/requests' do
-      log_request_match(__method__)
-      requests = Requests.find_all
-      format_response({ :requests => requests })
-    end
-
-    get '/requests/:id' do
-      log_request_match(__method__)
-      id = params['id']
-      _request = Requests.find_by_id(id)
-
-      system_name = _request[:system]
-      system_response = case system_name
-                        when :ubiquity; process_ubiquity_job_status_request(_request)
-                        else; { }
-      end
-      response = _request
-      response[:latest_status] = system_response
-
-      logger.debug { "Response Finding Request #{id}: #{response}" }
-      format_response(response)
-    end
-    ### REQUEST ROUTES END
-
+    ### EPISODE JOB ROUTES END
 
     ### UBIQUITY ROUTES BEGIN
+    get '/ubiquity/jobs/*' do
+      log_request_match(__method__)
+      splat = params[:splat].first
+      if splat.is_a?(String)
+        type, date_from, date_to = splat.split('/')
+      else
+        type = 'all'
+        date_from = date_to = nil
+      end
+
+
+
+
+
+
+
 
     # Builds a workflow using the default workflow name.
     # Requires source_file_path
@@ -206,10 +151,12 @@ module EpisodeEngine
       _params[:submitter_id] = submitter_id
 
       _response = Ubiquity.submit(_params, settings.ubiquity_options)
+      _jobs = Ubiquity.get_jobs_from_response(_response)
       success = _response[:success]
 
-      response = { :request => { :id => request_id.to_s }, :response => { :source => 'ubiquity', :content => _response }, :success => success }
-      Requests.update(request_id, { :response => response[:response], :success => response[:success] })
+      response = { :request => { :id => request_id.to_s }, :response => { :source => 'ubiquity', :content => _response }, :ubiquity => { :jobs => _jobs }, :success => success }
+
+      Database::Helpers::Requests.update(request_id, { 'response' => response[:response], 'ubiquity' => { :jobs => _jobs } })
       logger.debug { "Response: #{response}" }
       format_response(response)
     end
@@ -304,6 +251,7 @@ module EpisodeEngine
       indifferent_hash.merge(_params)
     end # merge_params_from_body
 
+
     def request_to_hash(_request = request)
       #request.accept              # ['text/html', '*/*']
       #request.accept? 'text/xml'  # true
@@ -332,10 +280,10 @@ module EpisodeEngine
       #request.forwarded?          # true (if running behind a reverse proxy)
       #request.env                 # raw env hash handed in by Rack
       out = { }
-      [ :request_method, :url, :host, :path, :script_name, :query_string, :xhr?,
-        :ip, :user_agent, :cookies,
-        :media_type, :params,
-        ].each { |method_name| out[method_name] = _request.send(method_name) }
+      [
+        :request_method, :url, :host, :path, :script_name, :query_string,
+        :xhr?, :ip, :user_agent, :cookies, :media_type, :params,
+      ].each { |method_name| out[method_name] = _request.send(method_name) }
       #out[:env] = request['env'].map { |entry| entry.to_s }
       out[:accept] = _request.accept.map { |entry| entry.to_s }
       out[:preferred_type] = request.preferred_type.to_s
@@ -344,8 +292,8 @@ module EpisodeEngine
       out
     end # request_to_hash
 
-    # @param [Hash] params
-    # @option params []
+    # @param [Hash] args
+    # @option args [Request] :request
     def request_to_s(args = { })
       _request = args[:request] || request
       output = <<-OUTPUT
@@ -362,6 +310,7 @@ module EpisodeEngine
 
 
     Remote
+    Host:           #{_request.env['REMOTE_HOST']}
     IP:             #{_request.ip}
     User Agent:     #{_request.user_agent}
     Cookies:        #{_request.cookies}
@@ -391,9 +340,13 @@ module EpisodeEngine
       logger.debug { "MATCHED: #{request.url} -> #{route}\nParsed Parameters: #{params}" }
     end # log_request_match
 
-    def process_request(args = {})
-
-    end # process_request
+    def record_request(subject, system = nil, route = nil)
+      request_as_hash = request_to_hash
+      request_as_hash['route'] = route.to_s
+      request_as_hash['system'] = system.to_s
+      id = Database::Helpers::Requests.insert(request_as_hash, subject, system)
+      id
+    end # record_request
 
     def get_ubiquity_job_status(job_id)
       @sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
@@ -403,8 +356,8 @@ module EpisodeEngine
     def process_ubiquity_job_status_request(_request)
       out = { }
 
-      _response = _request[:response]
-      source_file_paths = _response[:content]
+      _response = search_hash(_request, :response)
+      source_file_paths = search_hash(_response, :content)
       source_file_paths.each do |source_file_path, data|
         tasks = data[:tasks]
         task_responses = { }
@@ -412,6 +365,7 @@ module EpisodeEngine
         tasks.each do |task_name, task|
 
           job_id = task[:job_id]
+
           submission = get_ubiquity_job_status(job_id)
 
           if submission
@@ -444,7 +398,7 @@ module EpisodeEngine
         api = default_episode_api
       end
       api
-    end
+    end # episode_api
 
     def self.initialize_db(args = {})
       db = EpisodeEngine::Database::Mongo.new(args)
@@ -487,7 +441,6 @@ module EpisodeEngine
         :submission_missing_lookup_workflow_name => ubiquity_submission_missing_lookup_workflow_name,
         :mig_executable_file_path => mig_executable_file_path
       }
-
       ubiquity_options
     end # self.initialize_ubiquity
 
@@ -501,6 +454,12 @@ module EpisodeEngine
 
       db = initialize_db(args)
       set(:db, db)
+
+      requests = Database::Helpers::Requests
+      jobs = Database::Helpers::Jobs
+
+      requests.db = db.dup
+      jobs.db = db.dup
 
       api = initialize_api(args)
       set(:default_episode_api, api)
@@ -538,13 +497,7 @@ module EpisodeEngine
       @logger = self.class.logger
       logger.debug { 'Initializing Episode Engine HTTP Application' }
 
-      #params = self.class.initial_options.merge(args)
-      #@db = params[:db]
-
       @db = self.class.db
-      requests_db = db.dup
-      requests_db.collection = 'requests'
-      Requests.db = requests_db
 
       @default_episode_api = self.class.default_episode_api
 
