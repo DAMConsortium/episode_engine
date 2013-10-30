@@ -48,7 +48,8 @@ module EpisodeEngine
       response = execute(command_line)
       logger.debug { "Response from MIG:\n\tSTATUS: #{response[:status]}\n\tSTDOUT: #{response[:stdout]}\n\tSTDERR: #{response[:stderr]}" }
       return response unless response[:status]
-      metadata_sources = JSON.parse(response[:stdout])
+      stdout = response[:stdout]
+      metadata_sources = stdout.start_with?('{', '[') ? JSON.parse(response[:stdout]) : stdout
       metadata_sources
     end # self.mig
 
