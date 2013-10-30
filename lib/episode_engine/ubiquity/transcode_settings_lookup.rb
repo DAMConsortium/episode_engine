@@ -15,7 +15,7 @@ module EpisodeEngine
 
       class << self
 
-        attr_writer :logger
+        attr_writer :logger, :match_log
 
         def logger
           @logger ||= Logger.new(STDOUT)
@@ -23,6 +23,11 @@ module EpisodeEngine
 
         attr_accessor :options
         attr_accessor :workbook_id
+
+        def log_match_result(log_str)
+          logger.debug { "\t#{log_str}" }
+          @match_log << log_str
+        end
 
         def build_transcode_settings_table(args = { })
           args = args.dup
@@ -79,6 +84,7 @@ module EpisodeEngine
         def transcode_settings_lookup(values_to_look_for, map)
           logger.debug { "Searching Map For:   #{values_to_look_for}" }
           match = nil
+          @match_log = [ ]
           map.each_with_index do |map_entry, idx|
             logger.debug { "Searching Map Entry (#{idx + 1}): #{map_entry}" }
             match_failed = nil
@@ -94,11 +100,11 @@ module EpisodeEngine
               end
               #field_value = field_value.to_s.downcase
               unless map_entry_value == field_value || map_entry_value == '*'
-                logger.debug { "\tNo Match For #{field_name} : #{field_value} (#{field_value.class.name}) != #{map_entry_value} (#{map_entry_value.class.name})" }
+                log_match_result("\tNo Match For #{field_name} : #{field_value} (#{field_value.class.name}) != #{map_entry_value} (#{map_entry_value.class.name})")
                 match_failed = true
                 break
               else
-                logger.debug { "\tMatch For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})"  }
+                log_match_result("Match For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
               end
             end
             unless match_failed
