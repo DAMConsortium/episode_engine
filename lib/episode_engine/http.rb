@@ -426,7 +426,26 @@ module EpisodeEngine
       api
     end # self.initialize_api
 
+    def self.process_transcode_settings_lookup_options(options = { })
+      options = options.dup
+      workbook_username = search_hash!(options, :transcode_settings_google_workbook_username, :google_workbook_username)
+      workbook_password = search_hash!(options, :transcode_settings_google_workbook_password, :google_workbook_password)
+      google_workbook_id = search_hash!(options, :transcode_settings_google_workbook_id, :google_workbook_id) || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
+      workbook_file_path = search_hash!(options, :transcode_settings_workbook_file_path, :workbook_file_path)
+
+      transcode_settings_lookup_options = { }
+      transcode_settings_lookup_options[:google_workbook_username] = workbook_username if workbook_username
+      transcode_settings_lookup_options[:google_workbook_password] = workbook_password  if workbook_password
+      transcode_settings_lookup_options[:google_workbook_id] = google_workbook_id if google_workbook_id
+      transcode_settings_lookup_options[:workbook_file_path] = workbook_file_path if workbook_file_path
+      transcode_settings_lookup_options
+    end # process_transcode_settings_lookup_options
+
     def self.initialize_ubiquity(args = {})
+      logger = args[:logger]
+      Ubiquity.logger = logger
+      Ubiquity::TranscodeSettingsLookup.logger = logger
+
       ubiquity_submission_method = args[:ubiquity_submission_method]
 
       ubiquity_executable_path = args[:ubiquity_executable_path]
@@ -435,18 +454,13 @@ module EpisodeEngine
 
       mig_executable_file_path = args[:mig_executable_file_path] || Ubiquity::DEFAULT_MIG_EXECUTABLE_PATH
 
-      workbook_username = args[:transcode_settings_google_workbook_username]
-      workbook_password = args[:transcode_settings_google_workbook_password]
-      google_workbook_id = args[:transcode_settings_google_workbook_id] || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
-      workbook_file_path = args[:transcode_settings_workbook_file_path]
+      transcode_settings_lookup_options = process_transcode_settings_lookup_options(args)
 
       ubiquity_options = {
-        :google_workbook_id => google_workbook_id,
-        :google_workbook_username => workbook_username,
-        :google_workbook_password => workbook_password,
         :submission_workflow_name => ubiquity_submission_workflow_name,
         :submission_missing_lookup_workflow_name => ubiquity_submission_missing_lookup_workflow_name,
-        :mig_executable_file_path => mig_executable_file_path
+        :mig_executable_file_path => mig_executable_file_path,
+        :transcode_settings_lookup => transcode_settings_lookup_options,
       }
       ubiquity_options
     end # self.initialize_ubiquity
@@ -458,6 +472,7 @@ module EpisodeEngine
 
       logger = initialize_logger(args)
       set(:logger, logger)
+      args[:logger] = logger
 
       db = initialize_db(args)
       set(:db, db)
@@ -472,7 +487,7 @@ module EpisodeEngine
       set(:default_episode_api, api)
 
       ubiquity_options = initialize_ubiquity(args)
-      Ubiquity.logger = logger
+
       set(:ubiquity_options, ubiquity_options)
 
     end # self.init

@@ -178,12 +178,11 @@ module EpisodeEngine
       #options[:submission_method] = args['method'] || :command_line
       options[:submission_method] = args['method'] || :http
 
-      options[:transcode_settings_lookup] = {
-        :google_workbook_username => options[:google_workbook_username],
-        :google_workbook_password => options[:google_workbook_password],
-        :google_workbook_id => options[:google_workbook_id]
-      }
-      TranscodeSettingsLookup.logger = logger
+      #options[:transcode_settings_lookup] = {
+      #  :google_workbook_username => options[:google_workbook_username],
+      #  :google_workbook_password => options[:google_workbook_password],
+      #  :google_workbook_id => options[:google_workbook_id]
+      #}
 
       # Submit each source file path separately and record it's response separately
       responses = { }
