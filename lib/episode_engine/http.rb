@@ -182,6 +182,34 @@ module EpisodeEngine
       end
       format_response(_response)
     end
+
+    post '/ubiquity/transcode_settings' do
+      log_request_match(__method__)
+      _params = merge_params_from_body
+      _response = { }
+      file_paths = _params[:file_paths]
+      logger.debug { "File Paths: #{file_paths}" }
+      [*file_paths].each do |file_path|
+        logger.debug { "Processing File Path: #{file_path}" }
+        begin
+          r = { }
+          metadata_sources = Ubiquity.mig(file_path, settings.ubiquity_options)
+          r[:metadata_sources] = metadata_sources
+          common_metadata = metadata_sources['common']
+
+          transcode_settings_lookup_options = settings.ubiquity_options[:transcode_settings_lookup]
+          transcode_settings_response = Ubiquity.lookup_transcode_settings(common_metadata, transcode_settings_lookup_options)
+
+          r[:transcode_settings] = transcode_settings_response
+          r[:transcode_settings_match_log] = Ubiquity.transcode_settings_match_log
+          r[:transcode_settings_match_found] = Ubiquity.transcode_settings_match_found
+          _response[file_path] = r
+        rescue => e
+          _response[file_path] = {:exception => {:message => e.message, :backtrace => e.backtrace}}
+        end
+      end
+      format_response(_response)
+    end
     ### UBIQUITY ROUTES END
 
     # Shows what gems are within scope. Used for diagnostics and troubleshooting.
