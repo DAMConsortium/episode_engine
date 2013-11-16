@@ -3,7 +3,7 @@ module EpisodeEngine
 
   class Database
 
-    DEFAULT_DATABASE_NAME = 'episode_engine'
+    DEFAULT_DATABASE_NAME = 'EpisodeEngine'
 
     class Mongo
 
@@ -35,7 +35,9 @@ module EpisodeEngine
 
       def find(selector, options = { });
         _selector = Mongoize.to_mongo(selector, :invalid_chr_pattern => /^\./)
+        puts "DATABASE: #{@db.name}\nCOLLECTION: #{@col.name}\nSELECTOR: #{_selector}\nOPTIONS: #{options}"
         result = Mongoize.from_mongo(col.find(_selector, options).to_a)
+        puts "RESULT: (#{result.count}) #{result}"
         result
       end # find
 
@@ -52,6 +54,7 @@ module EpisodeEngine
           _document[op] = Mongoize.to_mongo(document.delete(op), :invalid_chr_patter => /^\./) if document[op]
         }
         _document = _document.merge(Mongoize.to_mongo(document, :invalid_chr_patter => /^\./))
+        puts "ID: #{id}\nDOCUMENT: #{_document}\nOPTIONS: #{opts}"
         col.update(id, _document, opts)
       end # update
 
