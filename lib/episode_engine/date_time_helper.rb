@@ -12,6 +12,7 @@ module DateTimeHelper
   #   in the last hour  - Now - 1 hour
   #   this hour         - The beginning of the hour
   #   last hour         - The beginning of the previous hour
+  #   in the last day   - Now - 24 hours
   #   today             - The beginning of the day
   #   yesterday         - The beginning of yesterday
   #   in the last week  - Now - 1 week
@@ -23,7 +24,7 @@ module DateTimeHelper
   #   this quarter      - The beginning of the quarter
   #   last quarter      - The beginning of last quarter
   #   this half         - The beginning of this half
-  #   last half         - The beginning of hte last half
+  #   last half         - The beginning of the last half
   #   in the last year  - Now - 1 year
   #   this year         - The beginning of the year
   #   last year         - The beginning of last year
@@ -35,6 +36,7 @@ module DateTimeHelper
   #   in the last hour  - Now
   #   this hour         - The end of the hour
   #   last hour         - The end of the previous hour
+  #   in the last day   - Now
   #   today             - The end of the day
   #   yesterday         - The end of yesterday
   #   in the last week  - Now
@@ -46,7 +48,7 @@ module DateTimeHelper
   #   this quarter      - The end of the quarter
   #   last quarter      - The end of last quarter
   #   this half         - The end of this half
-  #   last half         - The end of hte last half
+  #   last half         - The end of the last half
   #   in the last year  - Now
   #   this year         - The end of the year
   #   last year         - The end of last year
@@ -69,6 +71,9 @@ module DateTimeHelper
       when 'last hour', 'prev hour'
         _from_date = (DateTime.current - 1.hour).beginning_of_hour
         to_date_str = from_date_str unless to_date_str
+      when 'in the last day'
+        _from_date = (DateTime.current - 24.hour)
+        to_date_str = 'now'
       when 'today'
         _from_date = DateTime.current.beginning_of_day
         to_date_str = from_date_str unless to_date_str
