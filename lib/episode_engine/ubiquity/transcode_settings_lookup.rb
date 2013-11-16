@@ -62,7 +62,7 @@ module EpisodeEngine
         end # build_trawscode_settings_table_from_google
 
         def build_transcode_settings_table_from_file(source_file_name, options = { })
-          abort "Source File Not Found. #{source_file_name}" unless File.exists?(source_file_name)
+          raise Errno::ENOENT, "Source File Not Found. #{source_file_name}" unless File.exists?(source_file_name)
 
           options = options.dup if options.respond_to?(:dup)
           sheet_name = options.delete(:sheet_name) { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
@@ -76,13 +76,16 @@ module EpisodeEngine
           logger.debug { "Reading Data from Source File.\n#{ss.info}" }
           ss.default_sheet = sheet_name
           rows = ss.parse#(:headers => true)
-          abort 'Now Rows Were Found When Parsing the Source File.' if rows.empty?
+          if rows.empty?
+            logger.info { 'No Rows Were Found When Parsing the Source File.' }
+            return { }
+          end
 
           # Roo throws an exception of we use the :headers option when parsing so we do the work ourselves
           # roo-1.11.2/lib/roo/generic_spreadsheet.rb:476:in `each': undefined method `upto' for nil:NilClass (NoMethodError)
           first_row = rows.shift
           rows.map { |r| Hash[ first_row.zip(r) ] }
-        end
+        end # build_transcode_settings_table_from_file
 
         def transcode_settings_lookup(values_to_look_for, map)
           match = nil
@@ -108,7 +111,7 @@ module EpisodeEngine
                 match_failed = true
                 break
               else
-                log_match_result("Match For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
+                log_match_result("\tMatch For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
               end
             end
             unless match_failed
@@ -121,11 +124,12 @@ module EpisodeEngine
           match
         end # transcode_settings_lookup
 
-        def find(data, options = { })
-          options = options.dup if options and options.respond_to?(:dup)
-          @logger = options.delete(:logger) if options[:logger]
-
+        def process_options(options = ())
           file_path = options.delete(:file_path)
+          file_path ||= options.delete(:workbook_file_path)
+
+          sheet_name = options.delete(:sheet_name)
+          sheet_name ||= options.delete(:workbook_sheet_name)
 
           google_workbook_id = options.delete(:google_workbook_id) { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
           google_workbook_username = options.delete(:google_workbook_username)
@@ -136,6 +140,15 @@ module EpisodeEngine
           transcode_settings_options[:user] = google_workbook_username
           transcode_settings_options[:password] = google_workbook_password
           transcode_settings_options[:file_path] = file_path if file_path
+          transcode_settings_options[:sheet_name] = sheet_name if sheet_name
+          transcode_settings_options
+        end # process_options
+
+        def find(data, options = { })
+          options = options.dup if options and options.respond_to?(:dup)
+          @logger = options.delete(:logger) if options[:logger]
+
+          transcode_settings_options = process_options(options)
 
           #@transcode_settings_table ||= self.build_transcode_settings_table(workbook_id, options)
           @transcode_settings_table = self.build_transcode_settings_table(transcode_settings_options)

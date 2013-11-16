@@ -15,10 +15,13 @@ module EpisodeEngine
       @requests = args[:requests]
       @jobs = args[:jobs]
 
-      rcount = requests.find_all.length
-      jcount = jobs.find_all.length
 
-      logger.debug { "Counts\n\tRequests: #{rcount}\n\tJobs: #{jcount}" }
+      logger.debug {
+        rcount = requests.find_all.length
+        jcount = jobs.find_all.length
+
+        "Counts\n\tRequests: #{rcount}\n\tJobs: #{jcount}"
+      }
     end # initialize
 
 

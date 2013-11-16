@@ -1,12 +1,16 @@
+require 'time'
 require 'json'
 require 'pp'
+
 require 'sinatra/base'
 #require 'sinatra/contrib'
 require 'xmlsimple'
 require 'episode_engine'
 require 'episode_engine/api/adapters/xmlrpc'
 require 'episode_engine/database'
+require 'episode_engine/date_time_helper'
 require 'episode_engine/ubiquity'
+require 'episode_engine/status_tracker'
 
 module EpisodeEngine
 
@@ -21,218 +25,8 @@ module EpisodeEngine
     end
 
     ## ROUTES BEGIN ####################################################################################################
-    before { log_request }
-
-    ### REQUEST ROUTES BEGIN
-    get '/requests' do
-      log_request_match(__method__)
-      requests = Database::Helpers::Requests.find_all
-      format_response({ :requests => requests })
-    end
-
-    get '/requests/:id' do
-      log_request_match(__method__)
-      id = params['id']
-      _request = Database::Helpers::Requests.find_by_id(id)
-
-      system_name = search_hash(_request, :system)
-      system_response = case system_name
-                          when :ubiquity; process_ubiquity_job_status_request(_request)
-                          else; { }
-                        end
-      response = _request
-      response[:latest_status] = system_response
-
-      logger.debug { "Response Finding Request #{id}: #{response}" }
-      format_response(response)
-    end
-    ### REQUEST ROUTES END
-
-    ### API ROUTES BEGIN
-    post '/api' do
-      log_request_match(__method__)
-      _params = params.dup
-      _params = merge_params_from_body(_params)
-
-      command = search_hash!(_params, :procedure, :method, :command)
-      method_name = command.sub('-', '_').to_sym
-      method_arguments = search_hash!(_params, :arguments)
-      method_arguments = JSON.parse(method_arguments) rescue method_arguments if method_arguments.is_a?(String)
-      logger.debug { "\nCommand: #{method_name}\nArguments: #{method_arguments}" }
-
-      send_args = [ method_name ]
-      send_args << method_arguments if method_arguments
-      response = episode_api.send(*send_args)
-      logger.debug { "Response: #{response}" }
-      format_response(response)
-    end
-    ### API ROUTES END
-
-    ### EPISODE JOB ROUTES BEGIN
-
-    get '/jobs/:job_id' do
-      log_request_match(__method__)
-    end
-
-    get '/jobs' do
-
-    end
-
-    get '/jobs/cancel/:job_id' do
-
-    end
-
-
-    post '/jobs' do
-      log_request_match(__method__)
-      request_id = record_request(:job, :episode_engine, __method__)
-      _params = params.dup
-      _params = merge_params_from_body(_params)
-
-      send_to_ubiquity = search_hash!(_params, :send_to_ubiquity, { :ignore_strings => %w(_ -), :case_sensitive => false })
-      arguments = search_hash!(_params, :arguments)
-      if send_to_ubiquity
-
-      else
-
-        api = episode_api(_params)
-
-        if arguments
-          _response = api.submit_build_submission(arguments)
-        else
-          _response = { 'error' => { 'message' => 'arguments is a required argument.'}}
-        end
-      end
-
-      error = _response['error']
-      error_occurred = error.respond_to?(:empty?) ? !error.empty? : !!error
-
-      response = { :request => { :id => request_id.to_s }, :response => { :source => 'episode', :content => _response.inspect }, :success => !error_occurred }
-      Database::Helpers::Requests.update(request_id, { :response => response[:response], :success => response[:success] })
-      format_response(response)
-    end
-    ### EPISODE JOB ROUTES END
-
-    ### UBIQUITY ROUTES BEGIN
-    get '/ubiquity/jobs/*' do
-      log_request_match(__method__)
-      splat = params[:splat].first
-      if splat.is_a?(String)
-        type, date_from, date_to = splat.split('/')
-      else
-        type = 'all'
-        date_from = date_to = nil
-      end
-    end
-
-    # Builds a workflow using the default workflow name.
-    # Requires source_file_path
-    post '/ubiquity/submit' do
-      log_request_match(__method__)
-      request_id = record_request(:job, :ubiquity, __method__)
-      _params = merge_params_from_body
-
-      submitter_ip = request.ip
-      submitter_host = request.env['REMOTE_HOST']
-      submitter_address = submitter_host || submitter_ip
-
-      submitter_id = search_hash!(_params, :submitter_id, { :ignore_strings => %w(_ -), :case_sensitive => false })
-      submitter_id ||= submitter_address
-
-      _params[:submitter_ip] = submitter_ip
-      _params[:submitter_host] = submitter_host
-      _params[:submitter_address] = submitter_address
-      _params[:submitter_id] = submitter_id
-
-      _response = Ubiquity.submit(_params, settings.ubiquity_options)
-      _jobs = Ubiquity.get_jobs_from_response(_response)
-      success = _response[:success]
-
-      response = { :request => { :id => request_id.to_s }, :response => { :source => 'ubiquity', :content => _response }, :ubiquity => { :jobs => _jobs }, :success => success }
-
-      Database::Helpers::Requests.update(request_id, { 'response' => response[:response], 'ubiquity' => { :jobs => _jobs } })
-      logger.debug { "Response: #{response}" }
-      format_response(response)
-    end
-
-    # Passthrough for submitting ubiquity jobs
-    # Requires that workflow-name and optionally workflow-parameters be defined
-    post '/ubiquity' do
-      log_request_match(__method__)
-      request_id = record_request(:job, :ubiquity, __method__)
-      _params = merge_params_from_body
-
-      _response = Ubiquity::Submitter.submit(_params)
-      format_response(_response)
-    end
-
-    post '/ubiquity/mig' do
-      log_request_match(__method__)
-      _params = merge_params_from_body
-      _response = { }
-      file_paths = _params[:file_paths]
-      logger.debug { "File Paths: #{file_paths}" }
-      [*file_paths].each do |file_path|
-        logger.debug { "Processing File Path: #{file_path}" }
-        begin
-          _response[file_path] = Ubiquity.mig(file_path, settings.ubiquity_options)
-        rescue => e
-          _response[file_path] = {:exception => {:message => e.message, :backtrace => e.backtrace}}
-        end
-      end
-      format_response(_response)
-    end
-
-    post '/ubiquity/transcode_settings' do
-      log_request_match(__method__)
-      _params = merge_params_from_body
-      _response = { }
-      file_paths = _params[:file_paths]
-      logger.debug { "File Paths: #{file_paths}" }
-      [*file_paths].each do |file_path|
-        logger.debug { "Processing File Path: #{file_path}" }
-        begin
-          r = { }
-          metadata_sources = Ubiquity.mig(file_path, settings.ubiquity_options)
-          r[:metadata_sources] = metadata_sources
-          common_metadata = metadata_sources['common']
-
-          transcode_settings_lookup_options = settings.ubiquity_options[:transcode_settings_lookup]
-          transcode_settings_response = Ubiquity.lookup_transcode_settings(common_metadata, transcode_settings_lookup_options)
-
-          r[:transcode_settings] = transcode_settings_response
-          r[:transcode_settings_match_log] = Ubiquity.transcode_settings_match_log
-          r[:transcode_settings_match_found] = Ubiquity.transcode_settings_match_found
-          _response[file_path] = r
-        rescue => e
-          _response[file_path] = {:exception => {:message => e.message, :backtrace => e.backtrace}}
-        end
-      end
-      format_response(_response)
-    end
-    ### UBIQUITY ROUTES END
-
-    # Shows what gems are within scope. Used for diagnostics and troubleshooting.
-    get '/gems' do
-      cmd_line = 'gem list -b'
-      stdout_str, stderr_str, status = Open3.capture3(cmd_line)
-      #response = { :stdout => stdout_str, :stderr => stderr_str, :status => status, :success => status.success? }
-      stdout_str.gsub("\n", '<br/>')
-    end
-
-    ### CATCH ALL ROUTES BEGIN
-    get /.*/ do
-      log_request_match(__method__)
-      request_to_s.gsub("\n", '<br/>')
-    end
-
-    post /.*/ do
-      log_request_match(__method__)
-      #request_id = requests.insert(_request)
-    end
-    ### CATCH ALL ROUTES END
-
-
+    #load('episode_engine/http/routes.rb')
+    require 'episode_engine/http/routes'
     ## ROUTES END ######################################################################################################
 
     def format_response(response, args = { })
@@ -251,7 +45,7 @@ module EpisodeEngine
        _response
     end # output_response
 
-    def params_from_body
+    def parse_body
       if request.media_type == 'application/json'
         request.body.rewind
         body_contents = request.body.read
@@ -262,7 +56,7 @@ module EpisodeEngine
         end
       end
 
-    end
+    end # parse_body
 
     # Will try to convert a body to parameters and merge them into the params hash
     # Params will override the body parameters
@@ -270,19 +64,8 @@ module EpisodeEngine
     # @params [Hash] _params (params) The parameters parsed from the query and form fields
     def merge_params_from_body(_params = params)
       _params = _params.dup
-      if request.media_type == 'application/json'
-        request.body.rewind
-        body_contents = request.body.read
-        logger.debug { "Parsing: '#{body_contents}'" }
-        if body_contents
-          json_params = JSON.parse(body_contents)
-          if json_params.is_a?(Hash)
-            _params = json_params.merge(_params)
-          else
-            _params['body'] = json_params
-          end
-        end
-      end
+      _params_from_body = parse_body
+      _params = _params_from_body.merge(_params) if _params_from_body.is_a?(Hash)
       indifferent_hash.merge(_params)
     end # merge_params_from_body
 
@@ -367,7 +150,8 @@ module EpisodeEngine
     end # request_to_s
 
     def log_request(route = '')
-      logger.debug { "New Request. Via Route: #{route}\n#{request_to_s}" }
+      return if request.path == '/favicon.ico'
+      logger.debug { "\n#{request_to_s}" }
       #puts requests.insert(request_to_hash)
     end # log_request
 
@@ -383,13 +167,31 @@ module EpisodeEngine
       id
     end # record_request
 
+    def submitter(_params = params)
+      _params = _params.dup
+      submitter_ip = request.ip
+      submitter_host = request.env['REMOTE_HOST']
+      submitter_address = submitter_host || submitter_ip
+
+      submitter_id = search_hash!(_params, :submitter_id, { :ignore_strings => %w(_ -), :case_sensitive => false })
+      submitter_id ||= submitter_address
+
+      _submitter = { }
+      _submitter[:submitter_ip] = submitter_ip
+      _submitter[:submitter_host] = submitter_host
+      _submitter[:submitter_address] = submitter_address
+      _submitter[:submitter_id] = submitter_id
+      _submitter
+    end # submitter
+
     def get_ubiquity_job_status(job_id)
-      @sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
-      @sm.submission_get_by_ubiquity_job_id(job_id).first
+      #@sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
+      #@sm.submission_get_by_ubiquity_job_id(job_id).first
     end # get_ubiquity_job_status
 
     def process_ubiquity_job_status_request(_request)
       out = { }
+      logger.debug { "JSR: #{PP.pp(_request, '')}" }
 
       _response = search_hash(_request, :response)
       source_file_paths = search_hash(_response, :content)
@@ -436,11 +238,7 @@ module EpisodeEngine
     end # episode_api
 
     def self.initialize_db(args = {})
-      db = EpisodeEngine::Database::Mongo.new(args)
-      #db_client = ::Mongo::MongoClient.new(args[:database_host_name], args[:database_port])
-      #db = db_client.db(args[:database_name] || DEFAULT_DATABASE_NAME)
-      #db.authenticate(args[:database_user_name, args[:database_password]]) if args[:database_user_name]
-      db
+      EpisodeEngine::Database::Mongo.new(args)
     end # set_initialize_db
 
     def self.initialize_logger(args = {})
@@ -450,8 +248,7 @@ module EpisodeEngine
     end # self.initialize_logger
 
     def self.initialize_api(args = {})
-      api = EpisodeEngine::API::Adapters::XMLRPC.new(args)
-      api
+      EpisodeEngine::API::Adapters::XMLRPC.new(args)
     end # self.initialize_api
 
     def self.process_transcode_settings_lookup_options(options = { })
@@ -460,12 +257,13 @@ module EpisodeEngine
       workbook_password = search_hash!(options, :transcode_settings_google_workbook_password, :google_workbook_password)
       google_workbook_id = search_hash!(options, :transcode_settings_google_workbook_id, :google_workbook_id) || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
       workbook_file_path = search_hash!(options, :transcode_settings_workbook_file_path, :workbook_file_path)
-
+      workbook_sheet_name = search_hash!(options, :transcode_settings_workbook_sheet_name, :workbook_sheet_name) || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME
       transcode_settings_lookup_options = { }
       transcode_settings_lookup_options[:google_workbook_username] = workbook_username if workbook_username
       transcode_settings_lookup_options[:google_workbook_password] = workbook_password  if workbook_password
       transcode_settings_lookup_options[:google_workbook_id] = google_workbook_id if google_workbook_id
       transcode_settings_lookup_options[:workbook_file_path] = workbook_file_path if workbook_file_path
+      transcode_settings_lookup_options[:sheet_name] = workbook_sheet_name if workbook_sheet_name
       transcode_settings_lookup_options
     end # process_transcode_settings_lookup_options
 
@@ -493,6 +291,30 @@ module EpisodeEngine
       ubiquity_options
     end # self.initialize_ubiquity
 
+    def self.initialize_status_tracker(args = { })
+      args[:logger] ||= settings.logger
+
+      status_tracker_args = { }
+      status_tracker_args[:logger] = args[:logger]
+      status_tracker_args[:requests] = args.delete(:requests)
+      status_tracker_args[:jobs] = args.delete(:jobs)
+
+      status_tracker = Ubiquity::StatusTracker.new(status_tracker_args)
+      return status_tracker
+
+      #poller_args = { }
+      #poller_args[:logger] = args[:logger]
+      #poller_args[:poll_interval] = args[:poll_interval] || 10
+      #poller_args[:worker] = status_tracker
+      #status_tracker_poller = Poller.new(poller_args)
+      #@status_tracker_thread = Thread.new { status_tracker_poller.start }
+
+    end # initialize_status_tracker
+
+    # @param [Hash] args
+    # @option args [Logger] :logger
+    # @option args [String] :binding
+    # @option args [String] :local_port
     def self.init(args = {})
       set(:bind, args.delete(:binding))
       set(:port, args.delete(:local_port))
@@ -508,15 +330,26 @@ module EpisodeEngine
       requests = Database::Helpers::Requests
       jobs = Database::Helpers::Jobs
 
-      requests.db = db.dup
-      jobs.db = db.dup
+      requests.db = db
+      set(:requests, requests)
+
+      jobs.db = db
+      set(:jobs, jobs)
 
       api = initialize_api(args)
       set(:default_episode_api, api)
 
+      args[:db] = db
       ubiquity_options = initialize_ubiquity(args)
 
       set(:ubiquity_options, ubiquity_options)
+
+      ubiquity_jobs = Ubiquity::Database::Helpers::Jobs
+      ubiquity_db = Ubiquity::Database.new(ubiquity_options)
+      ubiquity_jobs.db = ubiquity_db
+
+      status_tracker = initialize_status_tracker(args.merge(:requests => requests, :jobs => ubiquity_jobs))
+      set(:status_tracker, status_tracker)
 
     end # self.init
 
@@ -524,7 +357,9 @@ module EpisodeEngine
     def self.run!(*)
       super
 
-      # Initialize Status Poller
+      # Start Status Tracker Poller
+      #@status_tracker_thread = Thread.new { status_tracker_poller.start }
+
     end
 
     #
@@ -539,6 +374,9 @@ module EpisodeEngine
     #
     attr_accessor :default_episode_api
 
+    #
+    attr_accessor :status_tracker
+
     ## @param [Hash] args
     ## @option args [Logger] :logger
     ## @option args [String] :log_to
@@ -551,6 +389,7 @@ module EpisodeEngine
 
       @default_episode_api = self.class.default_episode_api
 
+      @status_tracker = self.class.status_tracker
       super
     end # initialize
 

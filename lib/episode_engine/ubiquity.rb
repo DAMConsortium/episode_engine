@@ -4,7 +4,8 @@ require 'open3'
 require 'shellwords'
 require 'uri'
 
-#require 'episode_engine/ubiquity/status_tracker'
+require 'episode_engine/ubiquity/status_tracker'
+require 'episode_engine/ubiquity/database'
 require 'episode_engine/ubiquity/submitter'
 require 'episode_engine/ubiquity/submission_manager'
 require 'episode_engine/ubiquity/transcode_settings_lookup'
@@ -229,6 +230,21 @@ module EpisodeEngine
       end
       jobs
     end # self.get_jobs_from_response
+
+    def self.mig_and_lookup_transcode_settings(file_path, options)
+      r = { }
+      metadata_sources = mig(file_path, options)
+      r[:metadata_sources] = metadata_sources
+      common_metadata = metadata_sources['common']
+
+      transcode_settings_lookup_options = options[:transcode_settings_lookup]
+      transcode_settings_response = lookup_transcode_settings(common_metadata, transcode_settings_lookup_options)
+
+      r[:transcode_settings] = transcode_settings_response
+      r[:transcode_settings_match_log] = transcode_settings_match_log
+      r[:transcode_settings_match_found] = transcode_settings_match_found
+      return r
+    end
 
   end # Ubiquity
 

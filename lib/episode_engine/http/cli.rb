@@ -31,8 +31,8 @@ module EpisodeEngine
         op.on('--workbook-username USERNAME', '') { |v| options[:transcode_settings_google_workbook_username] = v }
         op.on('--workbook-password PASSWORD', '') { |v| options[:transcode_settings_google_workbook_password] = v }
         op.on('--workbook-id ID', '') { |v| options[:transcode_settings_google_workbook_id] = v }
-        op.on('--workbook-file-path FILEPATH', ' ') { |v| options[:transcode_settings_workbook_file_path] = v }
-
+        op.on('--workbook-file-path FILEPATH', 'The path to a workbook to use for the lookup of transcode settings.') { |v| options[:transcode_settings_workbook_file_path] = v }
+        op.on('--workflow-sheet-name NAME', 'The name of the spreadsheet to use from the workbook.', "\tdefault: ") { |v| options[:transcode_settings_workbook_sheet_name] = v }
 
         op.on('--log-to FILEPATH', 'The location to log to.', "\tdefault: STDOUT") { |v| options[:log_to] = v }
 

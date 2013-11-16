@@ -18,22 +18,23 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = %w(lib)
 
-  spec.add_dependency 'eventmachine'
+  spec.add_dependency 'activesupport', '~> 3.2'
+  spec.add_dependency 'eventmachine', '~> 1.0'
 
   # Roo requirement to assess google spreadsheets
-  spec.add_dependency 'google_drive'
-  spec.add_dependency 'zip' # Required by google_drive gem
+  spec.add_dependency 'google_drive', '~> 0.3.6'
+  spec.add_dependency 'zip', '~> 2.0.2' # Required by google_drive gem
 
 
-  spec.add_dependency 'mongo'
-  spec.add_dependency 'net-ssh'
-  spec.add_dependency 'roo'
+  spec.add_dependency 'mongo', '~> 1.9'
+  spec.add_dependency 'net-ssh', '~> 2'
+  spec.add_dependency 'roo', '~> 1.12'
 
   # MIG GEM REQUIREMENT. REMOVE ONCE MIG HAS BEEN DEPLOYED AS A GEM
-  spec.add_dependency 'ruby-filemagic'
+  spec.add_dependency 'ruby-filemagic', '~> 0.4'
 
-  spec.add_dependency 'sinatra'
-  spec.add_dependency 'xml-simple'
+  spec.add_dependency 'sinatra', '~> 1.4'
+  spec.add_dependency 'xml-simple', '~> 1.1'
 
   spec.add_development_dependency 'bundler', '~> 1.3'
   spec.add_development_dependency 'rake'
