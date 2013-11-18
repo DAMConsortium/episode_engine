@@ -18,6 +18,13 @@ module EpisodeEngine
       format_response(_response)
     end
 
+    get '/ubiquity/job/:ubiquity_job_id' do
+      log_request_match(__method__)
+      ubiquity_job_id = params[:ubiquity_job_id]
+      results = settings.ubiquity_jobs.find(ubiquity_job_id)
+      format_response(results)
+    end
+
     # Query requests handled by ubiquity
     get '/ubiquity/requests/*' do
       log_request_match(__method__)
@@ -83,7 +90,7 @@ module EpisodeEngine
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
           _requests = settings.requests.find(selector, options)
-          _requests = _requests.map { |request| request[:id] = request.delete('_id').to_s; request }
+          _requests = _requests.map { |request| _request = { :id => request.delete('_id').to_s }; _request.merge(request) }
           if _requests
             total_requests = _requests.length
             #_requests.slice(pagination_options[:skip], pagination_options[:limit])
@@ -204,7 +211,7 @@ module EpisodeEngine
       summaries = [ ]
       _requests.each do |_r|
         request_summary = { }
-        request_id = _r['_id'].to_s
+        request_id = _r[:id] || _r['_id'].to_s
         action = _r['action']
         completed = _r['completed']
         status = _r['status']
