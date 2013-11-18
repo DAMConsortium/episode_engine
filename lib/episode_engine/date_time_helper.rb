@@ -131,11 +131,20 @@ module DateTimeHelper
         _from_date = DateTime.strptime(from_date_str, '%s')
       when /^\d{12}$/ # Date string to the minute YYYYMMDDHHMM
         _from_date = DateTime.parse(from_date_str.insert(8, 'T'))
+      when 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+        _from_date = DateTime.parse(from_date_str).beginning_of_day
+        to_date_str = from_date_str unless to_date_str
+      when 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'
+        _from_date = DateTime.parse(from_date_str).beginning_of_month
+        to_date_str = from_date_str unless to_date_str
       else
         _from_date = DateTime.parse(from_date_str)
+
     end # case from_date_str
 
     case to_date_str
+      when nil
+        _to_date = nil
       when 'now'
         _to_date = DateTime.current
       when 'this hour'
@@ -178,6 +187,10 @@ module DateTimeHelper
         _to_date = DateTime.strptime(to_date_str, '%s')
       when /^\d{12}$/ # YYYYMMDDHHMM
         _to_date = DateTime.parse(to_date_str.insert(8, 'T'))
+      when 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+        _to_date = DateTime.parse(to_date_str).end_of_day
+      when 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'
+        _to_date = DateTime.parse(to_date_str).end_of_month
       else
         _to_date = DateTime.parse(to_date_str)
     end # case to_date_str
