@@ -48,7 +48,7 @@ module EpisodeEngine
       output_html ||= %w(html htm).include?(format)
 
       pagination_options = Database::Helpers::Requests.process_query_pagination_parameters(params)
-      #options = pagination_options.dup
+      options = pagination_options.dup
       options = { }
       options[:sort] = 'created_at'
 
@@ -86,7 +86,7 @@ module EpisodeEngine
           _requests = settings.requests.find(selector, options)
           if _requests
             total_requests = _requests.length
-            _requests.slice(pagination_options[:skip], pagination_options[:limit])
+            #_requests.slice(pagination_options[:skip], pagination_options[:limit])
           else
             total_requests = 0
           end
@@ -213,7 +213,7 @@ module EpisodeEngine
         request_summary[:status] = status
         #summaries << request_summary
 
-        response = _r['response']
+        response = _r['response'] || { }
         content = response[:content] || { }
         sfp_summaries = { }
         content.each do |source_file_path, sfp_response|
