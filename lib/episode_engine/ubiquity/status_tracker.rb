@@ -72,11 +72,11 @@ module EpisodeEngine
         job_id = _job[:id] || _job['_id']
         return unless job_id
 
-        if _job.has_key?('completed')
-          job_status = _job['completed']
+        if _job.has_key?('status')
+          job_status = _job['status']
         else
           job_from_ubiquity = jobs.find_by_id(job_id)
-          job_status = job_from_ubiquity['completed']
+          job_status = job_from_ubiquity['status']
         end
         job_status == 'completed'
       end
@@ -86,7 +86,6 @@ module EpisodeEngine
       end
 
       def process_request_jobs_by_state(request_jobs)
-        completed_request_jobs = { }
         uncompleted_request_jobs = [ ]
         unknown_request_jobs = [ ]
 
