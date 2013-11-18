@@ -36,9 +36,10 @@ module EpisodeEngine
       def find(selector, options = { });
         _selector = Mongoize.to_mongo(selector, :invalid_chr_pattern => /^\./)
         #puts "DATABASE: #{@db.name}\nCOLLECTION: #{@col.name}\nSELECTOR: #{_selector}\nOPTIONS: #{options}"
-        result = Mongoize.from_mongo(col.find(_selector, options).to_a)
-        #puts "RESULT: (#{result.count}) #{result}"
-        result
+        cursor = col.find(_selector, options)
+        results = cursor.to_a.map { |record| Mongoize.from_mongo(record) }
+        #puts "RESULT: (#{results.count}) #{results}"
+        results
       end # find
 
       def find_one(*args); Mongoize.from_mongo(col.find_one(Mongoize.to_mongo(*args))) end # find_one

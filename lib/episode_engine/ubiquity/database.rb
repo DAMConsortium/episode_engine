@@ -33,11 +33,11 @@ module EpisodeEngine
         end # collection
 
         def find(selector = { }, options = { })
-          selector = selector.is_a?(Hash) ? Mongoize.to_mongo(selector, recursive: false) : { '_id' => selector }
-          results = col.find(selector, options)
-          results.to_a.map { |e| Mongoize.from_mongo(e) }
+          _selector = selector.is_a?(Hash) ? Mongoize.to_mongo(selector, recursive: false) : { '_id' => selector }
+          cursor = col.find(_selector, options)
+          results = cursor.to_a.map { |record| Mongoize.from_mongo(record) }
+          results
         end # find
-        alias :get_all :find
 
         def find_one(selector = { }, options = { })
           selector = selector.is_a?(Hash) ? Mongoize.to_mongo(selector, recursive: false) : { '_id' => selector }
@@ -46,9 +46,10 @@ module EpisodeEngine
         alias :get :find_one
 
 
-        def find_all
-          find({ })
+        def find_all(options = { })
+          find({ }, options)
         end # find_all
+        alias :get_all :find_all
 
         #def find(selector, options = { });
         ##puts "DATABASE: #{@db.name}\nCOLLECTION: #{@col.name}\nSELECTOR: #{selector}\nOPTIONS: #{options}"
@@ -58,7 +59,6 @@ module EpisodeEngine
         #end # find
         #
         #def find_one(*args); col.find_one(*args) end # find_one
-
 
         def insert(*args); col.insert(*args) end # insert
 

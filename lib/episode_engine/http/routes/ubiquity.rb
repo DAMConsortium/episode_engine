@@ -49,7 +49,6 @@ module EpisodeEngine
 
       pagination_options = Database::Helpers::Requests.process_query_pagination_parameters(params)
       options = pagination_options.dup
-      options = { }
       options[:sort] = 'created_at'
 
       unknown_job_status = false
@@ -84,6 +83,7 @@ module EpisodeEngine
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
           _requests = settings.requests.find(selector, options)
+          _requests = _requests.map { |request| request[:id] = request.delete('_id').to_s }
           if _requests
             total_requests = _requests.length
             #_requests.slice(pagination_options[:skip], pagination_options[:limit])
@@ -94,6 +94,9 @@ module EpisodeEngine
           _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
         end
       end
+
+      _requests ||= { }
+      _response ||= { }
 
       #query_vitals = {
       #  status: status,
@@ -107,6 +110,7 @@ module EpisodeEngine
       #  response: _response,
       #}
 
+
       if output_html
         content_type :html
         status_html = '<html><head></head><body>'
@@ -118,15 +122,13 @@ module EpisodeEngine
         status_html << "Translated To Date: #{_date_to}<br/>"
         status_html << "Selector: #{selector}<br/>"
         status_html << "Options: #{options}<br/>"
-        status_html << "Pagination: #{pagination_options}<br/><br/>"
+        #status_html << "Pagination: #{pagination_options}<br/><br/>"
         status_html << "#{_response ? "<br/>Response: <pre>#{PP.pp(_response, '')}</pre>" : ''}<br/>"
         status_html << "Requests: (#{_requests ? _requests.length : 0}) #{show_detail ? " Detail: <pre>#{PP.pp(_requests, '')}</pre>" : " Summary: <pre>#{PP.pp(summarize_requests(_requests), '')}</pre>"}"
         status_html << '</body></html>'
         return status_html
       end
 
-      _requests ||= { }
-      _response ||= { }
       _response[:total] = total_requests
       _response.merge!(pagination_options)
       _response[:requests] = show_detail ? _requests : summarize_requests(_requests)
