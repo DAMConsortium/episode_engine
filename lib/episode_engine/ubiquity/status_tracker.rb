@@ -18,12 +18,12 @@ module EpisodeEngine
         @requests = args[:requests]
         @jobs = args[:jobs]
 
-        logger.debug {
-          rcount = requests.find_all.length
-          jcount = jobs.find_all.length
-
-          "Counts\n\tRequests: #{rcount}\n\tJobs: #{jcount}"
-        }
+        #logger.debug {
+        #  rcount = requests.find_all.length
+        #  jcount = jobs.find_all.length
+        #
+        #  "Counts\n\tRequests: #{rcount}\n\tJobs: #{jcount}"
+        #}
       end # initialize
 
       def get_job_from_ubiquity(job_id)

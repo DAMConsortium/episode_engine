@@ -83,7 +83,7 @@ module EpisodeEngine
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
           _requests = settings.requests.find(selector, options)
-          _requests = _requests.map { |request| request[:id] = request.delete('_id').to_s }
+          _requests = _requests.map { |request| request[:id] = request.delete('_id').to_s; request }
           if _requests
             total_requests = _requests.length
             #_requests.slice(pagination_options[:skip], pagination_options[:limit])
