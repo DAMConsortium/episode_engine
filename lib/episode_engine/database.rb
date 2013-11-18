@@ -3,7 +3,7 @@ module EpisodeEngine
 
   class Database
 
-    DEFAULT_DATABASE_NAME = 'EpisodeEngine'
+    DEFAULT_DATABASE_NAME = 'episode_engine'
 
     class Mongo
 
