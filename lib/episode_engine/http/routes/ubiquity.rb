@@ -258,8 +258,16 @@ module EpisodeEngine
           sfp_summary[:tasks] = task_summaries
           sfp_summaries[source_file_path] = sfp_summary
         end # content
+
+        ubiquity_jobs_summary = { }
+        ubiquity_jobs.each do |ubiquity_job|
+          _job_summary = { }
+          _job_summary = ubiquity_job
+          _job_summary.delete(:workflow)
+        end
+
         request_summary[:source_files] = sfp_summaries
-        request_summary[:ubiquity] = ubiquity_jobs
+        request_summary[:ubiquity] = ubiquity_jobs_summary
         summaries << request_summary
       end
       summaries
