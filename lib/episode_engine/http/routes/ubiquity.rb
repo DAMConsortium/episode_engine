@@ -215,7 +215,8 @@ module EpisodeEngine
         action = _r['action']
         completed = _r['completed']
         status = _r['status']
-        ubiquity_jobs = _r['ubiquity']
+        ubiquity = _r['ubiquity'] || { }
+        ubiquity_jobs = ubiquity[:jobs] || { }
 
         request_summary[:id] = request_id
         request_summary[:action] = action
@@ -260,14 +261,19 @@ module EpisodeEngine
         end # content
 
         ubiquity_jobs_summary = { }
-        ubiquity_jobs.each do |ubiquity_job|
-          _job_summary = { }
+        puts "UBIQUITY JOBS: #{ubiquity_jobs}"
+        ubiquity_jobs.each do |ubiquity_job_id, ubiquity_job|
           _job_summary = ubiquity_job
+          _job_summary[:workflow_name] = _job_summary[:workflow][:name]
           _job_summary.delete(:workflow)
+          _job_summary[:epitask] = _job_summary[:task].keys.first
+          _job_summary.delete(:task)
+
+          ubiquity_jobs_summary[ubiquity_job_id] = _job_summary
         end
 
         request_summary[:source_files] = sfp_summaries
-        request_summary[:ubiquity] = ubiquity_jobs_summary
+        request_summary[:ubiquity_jobs] = ubiquity_jobs_summary
         summaries << request_summary
       end
       summaries
