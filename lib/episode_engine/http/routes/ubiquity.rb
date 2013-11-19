@@ -215,6 +215,7 @@ module EpisodeEngine
         action = _r['action']
         completed = _r['completed']
         status = _r['status']
+        ubiquity_jobs = _r['ubiquity']
 
         request_summary[:id] = request_id
         request_summary[:action] = action
@@ -231,7 +232,6 @@ module EpisodeEngine
           task_summaries = { }
           tasks.each do |epitask_file_name, task|
             task_summary = { }
-
             submission = task[:submission]
 
             workflow = submission[:workflow] || { }
@@ -252,12 +252,14 @@ module EpisodeEngine
             #task_summary[:command_line] = ubiquity_cli_command
             #task_summary[:command_line_response] = ubiquity_cli_response
             #task_summary[:response] = submission_response
-            task_summaries[epitask_file_name] = { :ubiquity_submission => task_summary }
+
+            task_summaries[epitask_file_name] = { :ubiquity_submission => task_summary, :ubiquity_job => job_summary }
           end # tasks
           sfp_summary[:tasks] = task_summaries
           sfp_summaries[source_file_path] = sfp_summary
         end # content
         request_summary[:source_files] = sfp_summaries
+        request_summary[:ubiquity] = ubiquity_jobs
         summaries << request_summary
       end
       summaries
