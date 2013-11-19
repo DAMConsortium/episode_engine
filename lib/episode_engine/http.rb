@@ -255,9 +255,9 @@ module EpisodeEngine
       options = options.dup
       workbook_username = search_hash!(options, :transcode_settings_google_workbook_username, :google_workbook_username)
       workbook_password = search_hash!(options, :transcode_settings_google_workbook_password, :google_workbook_password)
-      google_workbook_id = search_hash!(options, :transcode_settings_google_workbook_id, :google_workbook_id) || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
+      google_workbook_id = search_hash!(options, :transcode_settings_google_workbook_id, :google_workbook_id) # || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
       workbook_file_path = search_hash!(options, :transcode_settings_workbook_file_path, :workbook_file_path)
-      workbook_sheet_name = search_hash!(options, :transcode_settings_workbook_sheet_name, :workbook_sheet_name) || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME
+      workbook_sheet_name = search_hash!(options, :transcode_settings_workbook_sheet_name, :workbook_sheet_name) # || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME
       transcode_settings_lookup_options = { }
       transcode_settings_lookup_options[:google_workbook_username] = workbook_username if workbook_username
       transcode_settings_lookup_options[:google_workbook_password] = workbook_password  if workbook_password

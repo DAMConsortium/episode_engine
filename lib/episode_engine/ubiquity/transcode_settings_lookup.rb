@@ -10,8 +10,8 @@ module EpisodeEngine
 
     class TranscodeSettingsLookup
 
-      DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID = '0AkcbJWkynMREdEV2RlZFZ0kzQmtsUXNXWXpNcE5RUUE'
-      DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME = 'Transcode Settings'
+      #DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID = '0AkcbJWkynMREdEV2RlZFZ0kzQmtsUXNXWXpNcE5RUUE'
+      #DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME = 'Transcode Settings'
 
       class << self
 
@@ -34,7 +34,7 @@ module EpisodeEngine
 
         def build_transcode_settings_table(args = { })
           args = args.dup
-          #puts "BUILD TRANSCODE SETTINGS TABLE ARGS: #{PP.pp(args, '')}"
+          logger.debug { "BUILD TRANSCODE SETTINGS TABLE ARGS: #{PP.pp(args, '')}" }
           google_workbook_id = args.delete(:google_workbook_id)
           file_path = args.delete(:file_path)
 
@@ -52,10 +52,10 @@ module EpisodeEngine
 
         def build_transcode_settings_table_from_google(workbook_id, options = { })
           options = options.dup if options.respond_to?(:dup)
-          sheet_name = options.delete(:sheet_name) { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
+          sheet_name = options.delete(:sheet_name) # { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
 
           ss = Roo::Google.new(workbook_id, options)
-          ss.default_sheet = sheet_name
+          ss.default_sheet = sheet_name if sheet_name
           rows = ss.parse(:headers => true).drop(1)
 
           rows
@@ -65,7 +65,7 @@ module EpisodeEngine
           raise Errno::ENOENT, "Source File Not Found. #{source_file_name}" unless File.exists?(source_file_name)
 
           options = options.dup if options.respond_to?(:dup)
-          sheet_name = options.delete(:sheet_name) { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
+          sheet_name = options.delete(:sheet_name) # { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
 
           # response = Roo::Spreadsheet.open(source_file_name).parse(:headers => true).drop(1)
           # Roo currently creates a row out of the column headers where the keys equal the values. We remove it if is there.
@@ -74,7 +74,7 @@ module EpisodeEngine
 
           ss = Roo::Spreadsheet.open(source_file_name)
           logger.debug { "Reading Data from Source File.\n#{ss.info}" }
-          ss.default_sheet = sheet_name
+          ss.default_sheet = sheet_name if sheet_name
           rows = ss.parse#(:headers => true)
           if rows.empty?
             logger.info { 'No Rows Were Found When Parsing the Source File.' }
@@ -131,14 +131,14 @@ module EpisodeEngine
           sheet_name = options.delete(:sheet_name)
           sheet_name ||= options.delete(:workbook_sheet_name)
 
-          google_workbook_id = options.delete(:google_workbook_id) { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
+          google_workbook_id = options.delete(:google_workbook_id) # { DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID }
           google_workbook_username = options.delete(:google_workbook_username)
           google_workbook_password = options.delete(:google_workbook_password)
 
           transcode_settings_options = { }
           transcode_settings_options[:google_workbook_id] = google_workbook_id if google_workbook_id
-          transcode_settings_options[:user] = google_workbook_username
-          transcode_settings_options[:password] = google_workbook_password
+          transcode_settings_options[:user] = google_workbook_username if google_workbook_username
+          transcode_settings_options[:password] = google_workbook_password if google_workbook_password
           transcode_settings_options[:file_path] = file_path if file_path
           transcode_settings_options[:sheet_name] = sheet_name if sheet_name
           transcode_settings_options
