@@ -327,12 +327,12 @@ module EpisodeEngine
       db = initialize_db(args)
       set(:db, db)
 
-      requests = Database::Helpers::Requests
-      jobs = Database::Helpers::Jobs
 
+      requests = Database::Helpers::Requests
       requests.db = db
       set(:requests, requests)
 
+      jobs = Database::Helpers::Jobs
       jobs.db = db
       set(:jobs, jobs)
 
@@ -340,13 +340,17 @@ module EpisodeEngine
       set(:default_episode_api, api)
 
       args[:db] = db
-      ubiquity_options = initialize_ubiquity(args)
 
+      ubiquity_options = initialize_ubiquity(args)
       set(:ubiquity_options, ubiquity_options)
 
-      ubiquity_jobs = Ubiquity::Database::Helpers::Jobs
       ubiquity_db = Ubiquity::Database.new(ubiquity_options)
+      set(:ubiquity_db, ubiquity_db)
+
+      ubiquity_jobs = Ubiquity::Database::Helpers::Jobs
       ubiquity_jobs.db = ubiquity_db
+      set(:ubiquity_jobs, ubiquity_jobs)
+      abort('Setting for "Ubiquity Jobs" is undefined.') unless settings.ubiquity_jobs
 
       status_tracker = initialize_status_tracker(args.merge(:requests => requests, :jobs => ubiquity_jobs))
       set(:status_tracker, status_tracker)
