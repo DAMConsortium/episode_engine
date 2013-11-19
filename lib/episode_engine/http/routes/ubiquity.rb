@@ -253,7 +253,7 @@ module EpisodeEngine
             #task_summary[:command_line_response] = ubiquity_cli_response
             #task_summary[:response] = submission_response
 
-            task_summaries[epitask_file_name] = { :ubiquity_submission => task_summary, :ubiquity_job => job_summary }
+            task_summaries[epitask_file_name] = { :ubiquity_submission => task_summary }
           end # tasks
           sfp_summary[:tasks] = task_summaries
           sfp_summaries[source_file_path] = sfp_summary
