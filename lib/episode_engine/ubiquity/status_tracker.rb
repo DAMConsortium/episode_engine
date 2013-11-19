@@ -92,26 +92,33 @@ module EpisodeEngine
         successful_jobs = [ ]
         failed_jobs = [ ]
 
-        request_jobs.each do |job_id, request_job|
+        request_jobs.dup.each do |job_id, request_job|
+          next unless job_id
+
           ubiquity_job = get_job_from_ubiquity(job_id)
           unless ubiquity_job
             unknown_request_jobs << request_job
+            request_jobs[job_id]['status'] = 'unknown'
             next
           end
 
           if is_job_completed?(ubiquity_job)
             if job_successful?(ubiquity_job)
               successful_jobs << request_job
+              jobs_status = 'success'
             else
               failed_jobs << request_job
+              job_status = 'failed'
             end
           else
             uncompleted_request_jobs << request_job
+            job_status = 'running'
           end
+          request_jobs[job_id]['status'] = job_status
         end
 
         completed_request_jobs = { :successful => successful_jobs, :failed => failed_jobs }
-        { :completed => completed_request_jobs, :uncompleted => uncompleted_request_jobs, :unknown => unknown_request_jobs }
+        { :completed => completed_request_jobs, :uncompleted => uncompleted_request_jobs, :unknown => unknown_request_jobs, :jobs_with_status => request_jobs }
       end
 
       def process_uncompleted_request(request)
@@ -133,10 +140,11 @@ module EpisodeEngine
           request_status = 'completed'
           completed = true
         end
+        jobs_with_status = request_jobs_by_state[:jobs_with_status]
 
         logger.debug { "Updating Request Status To: #{request_status} "}
 
-        requests.update_status(request_id, request_status, 'completed' => completed)
+        requests.update_status(request_id, request_status, 'completed' => completed, 'ubiquity' => { :jobs => jobs_with_status })
       end # process_request
 
       def process_uncompleted_requests(_requests = nil)
