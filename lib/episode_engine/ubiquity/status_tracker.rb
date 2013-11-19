@@ -81,9 +81,34 @@ module EpisodeEngine
         job_status == 'completed'
       end
 
-      def job_successful?(_job)
+      def job_successful?(job)
+        return false unless job.is_a?(Hash)
+
         # Failure is not an option
-        return true
+        # return true
+
+        history = job['history']
+        latest_update = history.last
+        _job = latest_update['job']
+        run_time = _job['run_time']
+        workflow = run_time['workflow']
+        tasks = workflow['tasks']
+        processed_tasks = tasks['processed']
+
+        # TODO: VERIFY THAT IT IS THE LAST TASK
+        latest_task = processed_tasks.last
+        result = latest_task['result']
+        success = result['type'] != 'error'
+
+        #unless success
+        #  result_values = result['values']
+        #  error = result_values['error']
+        #  error_message = result_values['error_message']
+        #  if error_message and !error
+        #    error = { :message => error_message }
+        #  end
+        #end
+        success
       end
 
       def set_job_status(job, status, success = nil)
