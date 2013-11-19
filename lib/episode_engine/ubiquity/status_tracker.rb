@@ -70,7 +70,7 @@ module EpisodeEngine
 
       def is_job_completed?(_job)
         job_id = _job[:id] || _job['_id']
-        return unless job_id
+        return unless job_id and !job_id.empty?
 
         if _job.has_key?('status')
           job_status = _job['status']
@@ -82,6 +82,7 @@ module EpisodeEngine
       end
 
       def job_successful?(_job)
+        # Failure is not an option
         return true
       end
 
@@ -99,7 +100,7 @@ module EpisodeEngine
         failed_jobs = [ ]
 
         request_jobs.dup.each do |job_id, request_job|
-          next unless job_id
+          next unless job_id and !job_id.empty?
 
           ubiquity_job = get_job_from_ubiquity(job_id)
           unless ubiquity_job

@@ -39,6 +39,10 @@ module EpisodeEngine
           results
         end # find
 
+        def count(selector = { }, options = { })
+
+        end
+
         def find_one(selector = { }, options = { })
           selector = selector.is_a?(Hash) ? Mongoize.to_mongo(selector, recursive: false) : { '_id' => selector }
           Mongoize.from_mongo(col.find_one(selector, options))
