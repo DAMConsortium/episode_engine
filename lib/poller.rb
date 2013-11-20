@@ -39,7 +39,7 @@ class Poller
 
   def run
     poll unless interrupted
-    #_sleep
+    _sleep
   end # run
 
   def start(*args)
