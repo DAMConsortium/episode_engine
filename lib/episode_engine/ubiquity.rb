@@ -93,6 +93,7 @@ module EpisodeEngine
 
       # Determine Epitask(s)
       transcode_settings_lookup_options = options[:transcode_settings_lookup]
+      logger.debug { "Looking Up Transcode Settings using options: #{transcode_settings_lookup_options}" }
       transcode_settings = lookup_transcode_settings(metadata_sources['common'], transcode_settings_lookup_options)
       logger.debug { "Transcode Settings: #{transcode_settings}" }
 

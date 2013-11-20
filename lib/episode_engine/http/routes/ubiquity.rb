@@ -69,7 +69,7 @@ module EpisodeEngine
         when :completed
           # Completed
           selector['completed'] = true
-        when :failed
+        when :failed, :fail, :failure
           # Completed And Failed
           selector['completed'] = true
           selector['success'] = false
@@ -152,7 +152,17 @@ module EpisodeEngine
       _submitter = submitter
       _params.merge!(_submitter)
 
-      _response = Ubiquity.submit(_params, settings.ubiquity_options)
+      options = settings.ubiquity_options
+
+      transcode_settings_from_message = self.class.process_transcode_settings_lookup_options(_params)
+      unless transcode_settings_from_message.empty?
+        logger.debug { "TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE. #{transcode_settings_from_message}" }
+        options[:transcode_settings_lookup] = transcode_settings_from_message
+      else
+        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
+      end
+
+      _response = Ubiquity.submit(_params, options)
       _jobs = Ubiquity.get_jobs_from_response(_response)
       success = _response[:success]
 
