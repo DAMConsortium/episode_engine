@@ -9,8 +9,9 @@ module EpisodeEngine
 
       def parse_options
         options = {
-            :log_to => STDOUT,
-            :log_level => Logger::DEBUG,
+          :log_to => STDOUT,
+          :log_level => Logger::DEBUG,
+          :options_file_name => File.expand_path(File.basename(__FILE__, '.*'), '~/.options')
         }
 
         op = OptionParser.new
@@ -40,7 +41,7 @@ module EpisodeEngine
               "Logging level. Available Options: #{LOGGING_LEVELS.keys.join(', ')}",
               "\tdefault: #{LOGGING_LEVELS.invert[options[:log_level]]}") { |v| options[:log_level] = LOGGING_LEVELS[v] }
 
-        op.on('--[no-]options-file [FILEPATH]', 'An option file to use to set additional command line options.' ) do |v|
+        op.on('--[no-]options-file [FILEPATH]', 'An option file to use to set additional command line options.', "\tdefault: #{options[:options_file_name]}" ) do |v|
           options[:options_file_name] = v
         end
 
