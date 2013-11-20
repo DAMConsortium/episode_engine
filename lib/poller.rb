@@ -64,10 +64,10 @@ class Poller
 
   # @param [Integer, Float] interval
   def _sleep(interval = poll_interval)
-    logger.info { "Sleeping for #{interval} seconds." }
+    #logger.info { "Sleeping for #{interval} seconds." }
     begin
       @sleeping = true
-      #sleep(interval)
+      sleep(interval)
       @sleeping = false
     rescue Interrupt
       #logger.debug { 'Sleep Interrupted.' }
