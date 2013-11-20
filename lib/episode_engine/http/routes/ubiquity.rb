@@ -197,10 +197,22 @@ module EpisodeEngine
       _response = { }
       file_paths = _params[:file_paths]
       logger.debug { "File Paths: #{file_paths}" }
+
+      options = settings.ubiquity_options
+
+      transcode_settings_from_message = self.class.process_transcode_settings_lookup_options(_params)
+      unless transcode_settings_from_message.empty?
+        logger.debug { "TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE. #{transcode_settings_from_message}" }
+        options[:transcode_settings_lookup] = transcode_settings_from_message
+      else
+        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
+      end
+
+
       [*file_paths].each do |file_path|
         logger.debug { "Processing File Path: #{file_path}" }
         begin
-          _response[file_path] = Ubiquity.mig_and_lookup_transcode_settings(file_path, settings.ubiquity_options)
+          _response[file_path] = Ubiquity.mig_and_lookup_transcode_settings(file_path, options)
         rescue => e
          _response[file_path] = {:exception => {:message => e.message, :backtrace => e.backtrace}}
         end
