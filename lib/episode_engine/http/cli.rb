@@ -11,7 +11,7 @@ module EpisodeEngine
         options = {
           :log_to => STDOUT,
           :log_level => Logger::DEBUG,
-          :options_file_name => File.expand_path(File.basename(__FILE__, '.*'), '~/.options')
+          :options_file_name => File.expand_path(File.basename($0, '.*'), '~/.options')
         }
 
         op = OptionParser.new
