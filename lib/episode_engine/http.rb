@@ -5,6 +5,8 @@ require 'pp'
 require 'sinatra/base'
 #require 'sinatra/contrib'
 require 'xmlsimple'
+
+require 'poller'
 require 'episode_engine'
 require 'episode_engine/api/adapters/xmlrpc'
 require 'episode_engine/database'

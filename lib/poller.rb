@@ -32,14 +32,14 @@ class Poller
 
     @worker = params[:worker] || BasicWorker
     raise ArgumentError, "Worker must have a 'run' method." unless @worker.respond_to?(:run)
-  end #
+  end # initialize
 
   def poll_interval; @poll_interval ||= DEFAULT_POLL_INTERVAL end # poll_interval
   def logger; @logger ||= Logger.new(STDOUT) end # logger
 
   def run
     poll unless interrupted
-    _sleep
+    #_sleep
   end # run
 
   def start(*args)
@@ -58,7 +58,7 @@ class Poller
       EventMachine.stop
       raise Interrupt if sleeping
     end
-  end
+  end # stop_proc
 
   def stop; stop_proc.call end # stop
 
@@ -67,12 +67,12 @@ class Poller
     logger.info { "Sleeping for #{interval} seconds." }
     begin
       @sleeping = true
-      sleep(interval)
+      #sleep(interval)
       @sleeping = false
-    rescue SystemExit, Interrupt
+    rescue Interrupt
       #logger.debug { 'Sleep Interrupted.' }
     end
-  end
+  end # _sleep
 
   def poll(*args)
     # raise NotImplementedError.new('The poll method has not been implemented.')

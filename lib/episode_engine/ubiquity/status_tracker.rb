@@ -205,10 +205,12 @@ module EpisodeEngine
         _requests.each { |request| process_uncompleted_request(request) }
       end # process_requests
 
+
       def get_uncompleted_requests
+        #_requests = requests.find({ 'system' => 'ubiquity' })
         #_requests = requests.find({ 'system' => 'ubiquity', 'status' => { '$ne' => 'completed' } })
-        #_requests = requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
-        _requests = requests.find({ 'system' => 'ubiquity' })
+        _requests = requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
+
         logger.debug { "Found #{_requests.length} uncompleted request." }
         _requests
       end # get_uncompleted_requests
