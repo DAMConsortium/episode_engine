@@ -149,7 +149,7 @@ module EpisodeEngine
             _job_status = parse_job_status(ubiquity_job)
             job_success = _job_status[:success]
             job_error = _job_status[:error]
-            if success
+            if job_success
               successful_jobs << request_job
               job_status = 'completed'
             else
