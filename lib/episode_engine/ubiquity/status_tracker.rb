@@ -81,7 +81,7 @@ module EpisodeEngine
         job_status == 'completed'
       end
 
-      def job_status(job)
+      def parse_job_status(job)
         return false unless job.is_a?(Hash)
 
         # Failure is not an option
@@ -146,7 +146,7 @@ module EpisodeEngine
           end
 
           if is_job_completed?(ubiquity_job)
-            _job_status = job_status(ubiquity_job)
+            _job_status = parse_job_status(ubiquity_job)
             job_success = _job_status[:success]
             job_error = _job_status[:error]
             if success
@@ -207,7 +207,8 @@ module EpisodeEngine
 
       def get_uncompleted_requests
         #_requests = requests.find({ 'system' => 'ubiquity', 'status' => { '$ne' => 'completed' } })
-        _requests = requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
+        #_requests = requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
+        _requests = requests.find({ 'system' => 'ubiquity' })
         logger.debug { "Found #{_requests.length} uncompleted request." }
         _requests
       end # get_uncompleted_requests
