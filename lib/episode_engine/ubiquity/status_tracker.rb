@@ -88,7 +88,8 @@ module EpisodeEngine
         # return true
 
         history = job['history']
-        latest_update = history.last
+        latest_update_key = history.keys.sort.last
+        latest_update = history[latest_update_key]
         _job = latest_update['job']
         run_time = _job['run_time']
         workflow = run_time['workflow']
