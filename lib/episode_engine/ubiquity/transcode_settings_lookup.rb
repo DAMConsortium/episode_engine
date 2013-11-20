@@ -152,6 +152,8 @@ module EpisodeEngine
 
           #@transcode_settings_table ||= self.build_transcode_settings_table(workbook_id, options)
           @transcode_settings_table = self.build_transcode_settings_table(transcode_settings_options)
+          @transcode_settings_table ||= [ { } ]
+
           data_to_find = { }
           data.each { |k,v| data_to_find[k.to_s] = v }
           unused_common_fields = data_to_find.keys - @transcode_settings_table.first.keys
