@@ -86,15 +86,22 @@ module EpisodeEngine
 
         # Failure is not an option
         # return true
-
+        logger.debug { "Processing job to determine if it was successful. #{PP.pp(job, '')}" }
         history = job['history']
+        logger.debug { "Job History: #{PP.pp(history, '')}" }
         latest_update_key = history.keys.sort.last
         latest_update = history[latest_update_key]
+        @logger.debug { "Latest Historical Update: (#{latest_update_key}) #{PP.pp(latest_update, '')}" }
         _job = latest_update['job']
+        @logger.debug { "JOB: #{PP.pp(_job, '')}"}
         run_time = _job['run_time']
+        @logger.debug { "JOB RUN TIME: #{PP.pp(run_time, '')}" }
         workflow = run_time['workflow']
+        @logger.debug { "JOB WORKFLOW: #{PP.pp(workflow, '')}" }
         tasks = workflow['tasks']
+        @logger.debug { "JOB WORKFLOW TASKS: #{PP.pp(tasks, '')}" }
         processed_tasks = tasks['processed']
+        @logger.debug { "JOB PROCESSED TASKS: #{PP.pp(processed_tasks, '')}"}
 
         # TODO: VERIFY THAT IT IS THE LAST TASK
         latest_task = processed_tasks.last
