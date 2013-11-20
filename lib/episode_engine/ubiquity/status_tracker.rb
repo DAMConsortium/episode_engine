@@ -111,9 +111,9 @@ module EpisodeEngine
         @logger.debug { "SUCCESS? #{success}" }
 
         unless success
-          result_values = result['values'] || { }
-          error = result_values['error']
-          error_message = result_values['error_message']
+          result_values = result['values'] || result[:values] || { }
+          error = result_values['error'] || result_values[:error]
+          error_message = result_values['error_message'] || result_values[:error_message]
           if error_message and !error
             error = { :message => error_message }
           end
