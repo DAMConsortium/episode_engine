@@ -94,19 +94,21 @@ module EpisodeEngine
         @logger.debug { "Latest Historical Update: (#{latest_update_key}) #{PP.pp(latest_update, '')}" }
         _job = latest_update['job']
         @logger.debug { "JOB: #{PP.pp(_job, '')}"}
-        run_time = _job['run_time']
+        run_time = _job[:run_time]
         @logger.debug { "JOB RUN TIME: #{PP.pp(run_time, '')}" }
-        workflow = run_time['workflow']
+        workflow = run_time[:workflow]
         @logger.debug { "JOB WORKFLOW: #{PP.pp(workflow, '')}" }
-        tasks = workflow['tasks']
+        tasks = workflow[:tasks]
         @logger.debug { "JOB WORKFLOW TASKS: #{PP.pp(tasks, '')}" }
-        processed_tasks = tasks['processed']
+        processed_tasks = tasks[:processed]
         @logger.debug { "JOB PROCESSED TASKS: #{PP.pp(processed_tasks, '')}"}
 
         # TODO: VERIFY THAT IT IS THE LAST TASK
         latest_task = processed_tasks.last
-        result = latest_task['result']
-        success = result['type'] != 'error'
+        result = latest_task[:result]
+        @logger.debug { "Result: #{result}" }
+        success = result[:type] != 'error'
+        @logger.debug { "SUCCESS? #{success}" }
 
         #unless success
         #  result_values = result['values']
