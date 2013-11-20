@@ -251,8 +251,7 @@ module EpisodeEngine
       EpisodeEngine::API::Adapters::XMLRPC.new(args)
     end # self.initialize_api
 
-    def self.process_transcode_settings_lookup_options(options = { })
-      options = options.dup
+    def self.process_transcode_settings_lookup_options!(options = { })
       workbook_username = search_hash!(options, :transcode_settings_google_workbook_username, :google_workbook_username)
       workbook_password = search_hash!(options, :transcode_settings_google_workbook_password, :google_workbook_password)
       google_workbook_id = search_hash!(options, :transcode_settings_google_workbook_id, :google_workbook_id) # || Ubiquity::TranscodeSettingsLookup::DEFAULT_TRANSCODE_SETTINGS_GOOGLE_WORKBOOK_ID
@@ -265,6 +264,10 @@ module EpisodeEngine
       transcode_settings_lookup_options[:workbook_file_path] = workbook_file_path if workbook_file_path
       transcode_settings_lookup_options[:sheet_name] = workbook_sheet_name if workbook_sheet_name
       transcode_settings_lookup_options
+    end # process_transcode_settings_lookup_options!
+
+    def self.process_transcode_settings_lookup_options(options = { })
+      self.process_transcode_settings_lookup_options!(options.dup)
     end # process_transcode_settings_lookup_options
 
     def self.initialize_ubiquity(args = {})
@@ -280,7 +283,7 @@ module EpisodeEngine
 
       mig_executable_file_path = args[:mig_executable_file_path] || Ubiquity::DEFAULT_MIG_EXECUTABLE_PATH
 
-      transcode_settings_lookup_options = process_transcode_settings_lookup_options(args)
+      transcode_settings_lookup_options = process_transcode_settings_lookup_options!(args)
 
       ubiquity_options = {
         :submission_workflow_name => ubiquity_submission_workflow_name,
@@ -300,14 +303,14 @@ module EpisodeEngine
       status_tracker_args[:jobs] = args.delete(:jobs)
 
       status_tracker = Ubiquity::StatusTracker.new(status_tracker_args)
-      return status_tracker
+      #return status_tracker
 
-      #poller_args = { }
-      #poller_args[:logger] = args[:logger]
-      #poller_args[:poll_interval] = args[:poll_interval] || 10
-      #poller_args[:worker] = status_tracker
-      #status_tracker_poller = Poller.new(poller_args)
-      #@status_tracker_thread = Thread.new { status_tracker_poller.start }
+      poller_args = { }
+      poller_args[:logger] = args[:logger]
+      poller_args[:poll_interval] = args[:poll_interval] || 15
+      poller_args[:worker] = status_tracker
+      status_tracker_poller = Poller.new(poller_args)
+      @status_tracker_thread = Thread.new { status_tracker_poller.start }
 
     end # initialize_status_tracker
 
