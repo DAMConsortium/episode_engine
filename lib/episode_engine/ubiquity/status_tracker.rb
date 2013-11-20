@@ -81,27 +81,27 @@ module EpisodeEngine
         job_status == 'completed'
       end
 
-      def job_successful?(job)
+      def job_status(job)
         return false unless job.is_a?(Hash)
 
         # Failure is not an option
         # return true
         logger.debug { "Processing job to determine if it was successful. #{PP.pp(job, '')}" }
         history = job['history']
-        logger.debug { "Job History: #{PP.pp(history, '')}" }
+        #logger.debug { "Job History: #{PP.pp(history, '')}" }
         latest_update_key = history.keys.sort.last
         latest_update = history[latest_update_key]
-        @logger.debug { "Latest Historical Update: (#{latest_update_key}) #{PP.pp(latest_update, '')}" }
+        #@logger.debug { "Latest Historical Update: (#{latest_update_key}) #{PP.pp(latest_update, '')}" }
         _job = latest_update['job']
-        @logger.debug { "JOB: #{PP.pp(_job, '')}"}
+        #@logger.debug { "JOB: #{PP.pp(_job, '')}"}
         run_time = _job[:run_time]
-        @logger.debug { "JOB RUN TIME: #{PP.pp(run_time, '')}" }
+        #@logger.debug { "JOB RUN TIME: #{PP.pp(run_time, '')}" }
         workflow = run_time[:workflow]
-        @logger.debug { "JOB WORKFLOW: #{PP.pp(workflow, '')}" }
+        #@logger.debug { "JOB WORKFLOW: #{PP.pp(workflow, '')}" }
         tasks = workflow[:tasks]
-        @logger.debug { "JOB WORKFLOW TASKS: #{PP.pp(tasks, '')}" }
+        #@logger.debug { "JOB WORKFLOW TASKS: #{PP.pp(tasks, '')}" }
         processed_tasks = tasks[:processed]
-        @logger.debug { "JOB PROCESSED TASKS: #{PP.pp(processed_tasks, '')}"}
+        #@logger.debug { "JOB PROCESSED TASKS: #{PP.pp(processed_tasks, '')}"}
 
         # TODO: VERIFY THAT IT IS THE LAST TASK
         latest_task = processed_tasks.last
@@ -110,20 +110,21 @@ module EpisodeEngine
         success = result[:type] != 'error'
         @logger.debug { "SUCCESS? #{success}" }
 
-        #unless success
-        #  result_values = result['values']
-        #  error = result_values['error']
-        #  error_message = result_values['error_message']
-        #  if error_message and !error
-        #    error = { :message => error_message }
-        #  end
-        #end
-        success
+        unless success
+          result_values = result['values']
+          error = result_values['error']
+          error_message = result_values['error_message']
+          if error_message and !error
+            error = { :message => error_message }
+          end
+        end
+        { :success => success, :error => error }
       end
 
-      def set_job_status(job, status, success = nil)
+      def set_job_status(job, status, success = nil, error = nil)
         job[:status] = status
         job[:success] = success
+        job[:error] = error
         job
       end
 
@@ -145,21 +146,23 @@ module EpisodeEngine
           end
 
           if is_job_completed?(ubiquity_job)
-            if job_successful?(ubiquity_job)
+            _job_status = job_status(ubiquity_job)
+            job_success = _job_status[:success]
+            job_error = _job_status[:error]
+            if success
               successful_jobs << request_job
               job_status = 'completed'
-              job_success = true
             else
               failed_jobs << request_job
-              job_status = 'failed'
-              job_success = false
+              job_status = 'completed'
             end
           else
             uncompleted_request_jobs << request_job
             job_status = 'running'
             job_success = nil
+            job_error = nil
           end
-          request_jobs[job_id] = set_job_status(request_job, job_status, job_success)
+          request_jobs[job_id] = set_job_status(request_job, job_status, job_success, job_error)
         end
 
         completed_request_jobs = { :successful => successful_jobs, :failed => failed_jobs }
