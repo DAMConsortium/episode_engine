@@ -33,11 +33,16 @@ module EpisodeEngine
         find({ })
       end # find_all
 
-      def find(selector, options = { });
+      def find(selector, options = { })
+        count = options.delete(:count)
+
         _selector = Mongoize.to_mongo(selector, :invalid_chr_pattern => /^\./)
         #puts "DATABASE: #{@db.name}\nCOLLECTION: #{@col.name}\nSELECTOR: #{_selector}\nOPTIONS: #{options}"
         cursor = col.find(_selector, options)
         results = cursor.to_a.map { |record| Mongoize.from_mongo(record) }
+
+        return { :records => results, :count => cursor.count } if count
+
         #puts "RESULT: (#{results.count}) #{results}"
         results
       end # find
