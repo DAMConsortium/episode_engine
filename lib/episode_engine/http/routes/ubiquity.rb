@@ -30,14 +30,12 @@ module EpisodeEngine
       log_request_match(__method__)
       criteria = params[:splat].first
 
-
-      #criteria = params[:criteria]
       if criteria.is_a?(String)
         criteria, format = criteria.split('.')
         status, date_from, date_to = criteria.split('/')
         logger.debug { "Format: '#{format}' Status: '#{status}' Date From: '#{date_from}' To: '#{date_to}'" }
       else
-        date_from = date_to = nil
+        format = status = date_from = date_to = nil
       end
       status ||= :all
 
@@ -50,7 +48,7 @@ module EpisodeEngine
       show_detail_param = search_hash(params, :show_detail, :detail)
       show_detail = (show_detail_param and (%w(true 1).include?(show_detail_param.downcase)))
 
-      output_html_param = search_hash(params, :html, :output_html)
+      output_html_param = search_hash(params, :output_html, :html)
       output_html = (output_html_param and (%w(true 1).include?(output_html_param.downcase)))
       output_html ||= %w(html htm).include?(format)
 
@@ -89,14 +87,15 @@ module EpisodeEngine
       unless unknown_job_status
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
-          _requests = settings.requests.find(selector, options)
+          #count = settings.requests.find(selector, options.merge(:count => true))
+
+          response = settings.requests.find(selector, options.merge(:count => true))
+
+          _requests = response[:records]
+          total_requests = response[:count]
+
+          # We merge request at the end so that :id is the first key in the hash. This should result with it being at the top when being output.
           _requests = _requests.map { |request| _request = { :id => request.delete('_id').to_s }; _request.merge(request) }
-          if _requests
-            total_requests = _requests.length
-            #_requests.slice(pagination_options[:skip], pagination_options[:limit])
-          else
-            total_requests = 0
-          end
         rescue => e
           _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
         end
