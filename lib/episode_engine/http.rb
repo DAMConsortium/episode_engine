@@ -101,7 +101,7 @@ module EpisodeEngine
       #request.env                 # raw env hash handed in by Rack
       out = { }
       [
-        :request_method, :url, :host, :path, :script_name, :query_string,
+        :request_method, :url, :host, :port, :path, :script_name, :query_string,
         :xhr?, :ip, :user_agent, :cookies, :media_type, :params,
       ].each { |method_name| out[method_name] = _request.send(method_name) }
       #out[:env] = request['env'].map { |entry| entry.to_s }
@@ -195,8 +195,8 @@ module EpisodeEngine
       out = { }
       logger.debug { "JSR: #{PP.pp(_request, '')}" }
 
-      _response = search_hash(_request, :response)
-      source_file_paths = search_hash(_response, :content)
+      _response = search_hash(_request, :response) || { }
+      source_file_paths = search_hash(_response, :content) || { }
       source_file_paths.each do |source_file_path, data|
         tasks = data[:tasks]
         task_responses = { }
