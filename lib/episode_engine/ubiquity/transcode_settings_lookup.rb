@@ -33,18 +33,19 @@ module EpisodeEngine
         end
 
         def build_transcode_settings_table(args = { })
-          args = args.dup
           logger.debug { "BUILD TRANSCODE SETTINGS TABLE ARGS: #{PP.pp(args, '')}" }
-          google_workbook_id = args.delete(:google_workbook_id)
-          file_path = args.delete(:file_path)
 
-          options = args
+          transcode_settings_options = process_options(args.dup)
+
+          google_workbook_id = transcode_settings_options[:google_workbook_id]
+          file_path = transcode_settings_options[:file_path]
+
           if google_workbook_id
-            table = build_transcode_settings_table_from_google(google_workbook_id, options)
+            table = build_transcode_settings_table_from_google(google_workbook_id, transcode_settings_options)
           elsif file_path
-            table = build_transcode_settings_table_from_file(file_path, options)
+            table = build_transcode_settings_table_from_file(file_path, transcode_settings_options)
           else
-            logger.error { "Failed to Build Transcode Settings Table. Arguments: #{args}" }
+            logger.error { "Failed to Build Transcode Settings Table. Arguments: #{transcode_settings_options}" }
             table = [ ]
           end
           table
@@ -59,7 +60,7 @@ module EpisodeEngine
           rows = ss.parse(:headers => true).drop(1)
 
           rows
-        end # build_trawscode_settings_table_from_google
+        end # build_transcode_settings_table_from_google
 
         def build_transcode_settings_table_from_file(source_file_name, options = { })
           raise Errno::ENOENT, "Source File Not Found. #{source_file_name}" unless File.exists?(source_file_name)
@@ -148,10 +149,8 @@ module EpisodeEngine
           options = options.dup if options and options.respond_to?(:dup)
           @logger = options.delete(:logger) if options[:logger]
 
-          transcode_settings_options = process_options(options)
-
           #@transcode_settings_table ||= self.build_transcode_settings_table(workbook_id, options)
-          @transcode_settings_table = self.build_transcode_settings_table(transcode_settings_options)
+          @transcode_settings_table = self.build_transcode_settings_table(options)
           @transcode_settings_table ||= [ { } ]
 
           data_to_find = { }
