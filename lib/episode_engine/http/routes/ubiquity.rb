@@ -130,7 +130,8 @@ module EpisodeEngine
         status_html << "Options: #{options}<br/>"
         #status_html << "Pagination: #{pagination_options}<br/><br/>"
         status_html << "#{_response ? "<br/>Response: <pre>#{PP.pp(_response, '')}</pre>" : ''}<br/>"
-        status_html << "Requests: (#{_requests ? _requests.length : 0}) #{show_detail ? " Detail: <pre>#{PP.pp(_requests, '')}</pre>" : " Summary: <pre>#{PP.pp(summarize_requests(_requests), '')}</pre>"}"
+        status_html << "Total Requests Found: #{total_requests}<br/>"
+        status_html << "Requests: (#{_requests ? _requests.length : 0}) #{show_detail ? " Detail: <pre>#{PP.pp(_requests, '')}</pre>" : " Summary: <pre>#{PP.pp(summarize_requests(_requests, true), '')}</pre>"}"
         status_html << '</body></html>'
         return status_html
       end
@@ -227,8 +228,9 @@ module EpisodeEngine
     end
     ### UBIQUITY ROUTES END
 
-    def summarize_requests(_requests)
+    def summarize_requests(_requests, html = false)
       return unless _requests
+      #host_url = (html and request) ? "#{request.scheme}://#{request.host}:#{request.port}/" : '/'
       summaries = [ ]
       _requests.each do |_r|
         request_summary = { }
@@ -239,7 +241,7 @@ module EpisodeEngine
         ubiquity = _r['ubiquity'] || { }
         ubiquity_jobs = ubiquity[:jobs] || { }
 
-        request_summary[:id] = request_id
+        request_summary[:id] = html ? "<a href='/request/#{request_id}'>#{request_id}</a>" : request_id
         request_summary[:action] = action
         request_summary[:completed] = completed
         request_summary[:status] = status
@@ -270,7 +272,7 @@ module EpisodeEngine
             task_summary[:uri] = ubiquity_http_uri
             task_summary[:workflow_name] = workflow_name
             task_summary[:success] = submission_success
-            task_summary[:job_id] = submission_job_id
+            task_summary[:job_id] = html ? "<a href='/ubiquity/job/#{submission_job_id}'>#{submission_job_id}</a>" : submission_job_id
             #task_summary[:command_line] = ubiquity_cli_command
             #task_summary[:command_line_response] = ubiquity_cli_response
             #task_summary[:response] = submission_response
@@ -284,12 +286,12 @@ module EpisodeEngine
         ubiquity_jobs_summary = { }
         puts "UBIQUITY JOBS: #{ubiquity_jobs}"
         ubiquity_jobs.each do |ubiquity_job_id, ubiquity_job|
+          ubiquity_job_id = "<a href='/ubiquity/job/#{ubiquity_job_id}'>#{ubiquity_job_id}</a>" if html
           _job_summary = ubiquity_job
           _job_summary[:workflow_name] = _job_summary[:workflow][:name]
           _job_summary.delete(:workflow)
           _job_summary[:epitask] = _job_summary[:task].keys.first
           _job_summary.delete(:task)
-
           ubiquity_jobs_summary[ubiquity_job_id] = _job_summary
         end
 
