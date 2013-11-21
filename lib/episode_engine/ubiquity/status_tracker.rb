@@ -17,13 +17,7 @@ module EpisodeEngine
 
         @requests = args[:requests]
         @jobs = args[:jobs]
-
-        #logger.debug {
-        #  rcount = requests.find_all.length
-        #  jcount = jobs.find_all.length
-        #
-        #  "Counts\n\tRequests: #{rcount}\n\tJobs: #{jcount}"
-        #}
+        logger.debug { "DATABASE:\n\tREQUESTS: DB: #{requests.db.db.name} | COLLECTION: #{requests.db.col.name}\n\tJOBS: DB: #{jobs.db.db.name} | COLLECTION: #{jobs.db.col.name}" }
       end # initialize
 
       def get_job_from_ubiquity(job_id)
@@ -32,34 +26,6 @@ module EpisodeEngine
         logger.debug { "UBIQUITY JOB#{job ? ":\n#{PP.pp(job, '')}" : " NOT FOUND. (#{job_id}"})" }
         job
       end # get_job_from_ubiquity
-
-      def process_job(job_from_episode)
-        job_id = job_from_episode[:id]
-        return unless job_id
-        logger.debug { "Processing Job. #{job_id}" }
-
-        job = get_job_from_ubiquity(job_id)
-        return unless job
-
-        job_status = job['status']
-        logger.debug { "JOB KEYS: #{job.keys} STATUS: #{job_status}" }
-
-        job_history = job['history']
-        job_history_keys = job_history.keys
-        #logger.debug { "JOB (#{job.keys}) HISTORY KEYS: #{job_history_keys}" }
-
-        job_history_last_key = job_history_keys.sort.last
-        job_history_last = job_history[job_history_last_key]
-
-        job_history_last_status = job_history_last['status']
-        logger.debug { "JOB HISTORY LAST: #{job_history_last.keys} STATUS: #{job_history_last_status} " }
-
-      end # process_job
-
-      def process_jobs(_jobs)
-        _jobs.each { |job| process_job(job) }
-      end # process_jobs
-
 
       def get_jobs_from_request(request)
         ubiquity = request['ubiquity']
@@ -169,7 +135,7 @@ module EpisodeEngine
         { :completed => completed_request_jobs, :uncompleted => uncompleted_request_jobs, :unknown => unknown_request_jobs, :jobs_with_status => request_jobs }
       end
 
-      def process_uncompleted_request(request)
+      def process_request(request)
         logger.debug { "Processing Status for Request: #{request}" }
         request_jobs = get_jobs_from_request(request)
 
@@ -200,26 +166,33 @@ module EpisodeEngine
         requests.update_status(request_id, request_status, 'completed' => completed, 'success' => success, 'ubiquity' => { :jobs => jobs_with_status })
       end # process_request
 
-      def process_uncompleted_requests(_requests = nil)
-        _requests ||= get_uncompleted_requests
-        _requests.each { |request| process_uncompleted_request(request) }
-      end # process_requests
+      def get_requests
+        requests.find({ 'system' => 'ubiquity' })
+      end
 
+      def get_completed_requests
+        requests.find({ 'system' => 'ubiquity', 'status' => { '$ne' => 'completed' } })
+      end
 
       def get_uncompleted_requests
-        #_requests = requests.find({ 'system' => 'ubiquity' })
-        #_requests = requests.find({ 'system' => 'ubiquity', 'status' => { '$ne' => 'completed' } })
-        _requests = requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
-
-        logger.debug { "Found #{_requests.length} uncompleted request." }
-        _requests
+        requests.find({ 'system' => 'ubiquity', 'completed' => { '$ne' => true } })
       end # get_uncompleted_requests
+
+      def process_requests(_requests = nil)
+        _requests ||= get_requests
+        _requests.each { |request| process_request(request) }
+      end # process_requests
+
+      def process_uncompleted_requests(_requests = nil)
+        _requests ||= get_uncompleted_requests
+        logger.debug { "Found #{_requests.length} uncompleted request." }
+        process_requests(_requests)
+      end # process_requests
 
       def run
         logger.debug { 'Running Status Tracker.' }
         #logger.debug { "DATABASE:\n\tJOBS: #{jobs.db.db.name} | #{jobs.db.col.name}" }
         process_uncompleted_requests
-        #process_jobs(get_uncompleted_jobs)
       end # run
 
     end # StatusTracker
