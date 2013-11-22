@@ -57,10 +57,10 @@ module EpisodeEngine
 
 
     def self.submit_workflow(workflow, options = { })
-      logger.debug { "Submitting To Ubiquity: #{PP.pp(workflow, '')}"}
+      logger.debug { "Submitting To Ubiquity: #{PP.pp(workflow, '')}" }
       _response = Submitter.submit(options.merge(workflow))
       response_as_hash = Submitter.response_as_hash
-      logger.debug { "Response From Ubiquity:\n\n#{_response}\n\n#{PP.pp(response_as_hash, '')}"}
+      logger.debug { "Response From Ubiquity:\n\n#{_response}\n\n#{PP.pp(response_as_hash, '')}" }
       response_as_hash
     end # self.submit_workflow
 
@@ -154,9 +154,7 @@ module EpisodeEngine
     # @param [Hash] options Options for this request
     # @option options [Symbol] :submission_method
     # @option options [String] :submission_workflow_name
-    # @option options [String] :google_workbook_username
-    # @option options [String] :google_workbook_password
-    # @option options [String] :google_workbook_id
+    # @option options [Hash] :transcode_settings_lookup
     def self.submit(args = { }, options = { })
       args = args.dup
       options = options.dup
