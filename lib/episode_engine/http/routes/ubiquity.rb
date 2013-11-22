@@ -142,6 +142,28 @@ module EpisodeEngine
       format_response(_response)
     end
 
+    post '/ubiquity/submit/transcode_settings_lookup_test' do
+      log_request_match(__method__)
+      request_id = record_request(:job, :ubiquity, __method__)
+      _params = merge_params_from_body
+
+      _submitter = submitter
+      _params.merge!(_submitter)
+
+      options = settings.ubiquity_options
+
+      transcode_settings_from_message = self.class.process_transcode_settings_lookup_options(_params)
+      if transcode_settings_from_message.empty?
+        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
+      else
+        logger.debug { "TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE. #{transcode_settings_from_message}" }
+        options[:transcode_settings_lookup] = transcode_settings_from_message
+      end
+
+      _response = options
+      format_response(_response)
+    end
+
     # Builds a workflow using the default workflow name.
     # Requires source_file_path
     post '/ubiquity/submit' do
@@ -155,11 +177,11 @@ module EpisodeEngine
       options = settings.ubiquity_options
 
       transcode_settings_from_message = self.class.process_transcode_settings_lookup_options(_params)
-      unless transcode_settings_from_message.empty?
+      if transcode_settings_from_message.empty?
+        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
+      else
         logger.debug { "TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE. #{transcode_settings_from_message}" }
         options[:transcode_settings_lookup] = transcode_settings_from_message
-      else
-        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
       end
 
       _response = Ubiquity.submit(_params, options)
