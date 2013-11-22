@@ -127,7 +127,7 @@ module EpisodeEngine
 
         def process_options(options = ())
           transcode_settings_lookup_options = options[:transcode_settings_lookup]
-          options = transcode_settings_lookup_options ? transcode_settings_lookup_options : options[:transcode_settings_lookup]
+          options = transcode_settings_lookup_options ? transcode_settings_lookup_options : options
 
           file_path = options.delete(:file_path)
           file_path ||= options.delete(:workbook_file_path)
