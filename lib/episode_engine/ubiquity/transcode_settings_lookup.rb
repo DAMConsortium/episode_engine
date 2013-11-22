@@ -63,7 +63,7 @@ module EpisodeEngine
         end # build_transcode_settings_table_from_google
 
         def build_transcode_settings_table_from_file(source_file_name, options = { })
-          raise Errno::ENOENT, "Source File Not Found. #{source_file_name}" unless File.exists?(source_file_name)
+          raise Errno::ENOENT, "Source File Not Found. '#{source_file_name}' Options: #{options}" unless File.exists?(source_file_name)
 
           options = options.dup if options.respond_to?(:dup)
           sheet_name = options.delete(:sheet_name) # { DEFAULT_TRANSCODE_SETTINGS_WORKBOOK_SHEET_NAME }
@@ -126,6 +126,9 @@ module EpisodeEngine
         end # transcode_settings_lookup
 
         def process_options(options = ())
+          transcode_settings_lookup_options = options[:transcode_settings_lookup]
+          options = transcode_settings_lookup_options ? transcode_settings_lookup_options : options[:transcode_settings_lookup]
+
           file_path = options.delete(:file_path)
           file_path ||= options.delete(:workbook_file_path)
 
