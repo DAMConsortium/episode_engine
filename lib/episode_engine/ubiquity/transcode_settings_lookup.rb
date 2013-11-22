@@ -100,19 +100,26 @@ module EpisodeEngine
               map_entry_value = map_entry[field_name]
               if map_entry_value.is_a?(String)
                 map_entry_value = map_entry_value[1..-2] if map_entry_value.start_with?('"')
+                map_entry_value_as_string = map_entry_value
+
                 field_value = field_value.to_s if field_value === true || field_value === false
+                field_value_as_string = field_value.respond_to?(:to_s) ? field_value.to_s : nil
               else
                 if field_value.is_a?(String)
-                  map_entry_value = map_entry_value.to_s
+                  field_value_as_string = field_value
+                  map_entry_value = map_entry_value_as_string = map_entry_value.to_s
+                else
+                  field_value_as_string = '='
+                  map_entry_value_as_string = '!'
                 end
               end
               #field_value = field_value.to_s.downcase
-              unless map_entry_value == field_value || map_entry_value == '*'
+              if map_entry_value == field_value || map_entry_value == '*' || map_entry_value_as_string == field_value_as_string
+                log_match_result("\tMatch For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
+              else
                 log_match_result("\tNo Match For #{field_name} : #{field_value} (#{field_value.class.name}) != #{map_entry_value} (#{map_entry_value.class.name})")
                 match_failed = true
                 break
-              else
-                log_match_result("\tMatch For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
               end
             end
             unless match_failed
