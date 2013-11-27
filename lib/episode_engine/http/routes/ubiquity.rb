@@ -146,9 +146,7 @@ module EpisodeEngine
       log_request_match(__method__)
       request_id = record_request(:job, :ubiquity, __method__)
       _params = merge_params_from_body
-
-      _submitter = submitter
-      _params.merge!(_submitter)
+      _params = params_with_submitter(_params)
 
       options = settings.ubiquity_options
 
@@ -170,9 +168,7 @@ module EpisodeEngine
       log_request_match(__method__)
       request_id = record_request(:job, :ubiquity, __method__)
       _params = merge_params_from_body
-
-      _submitter = submitter
-      _params.merge!(_submitter)
+      _params = params_with_submitter(_params)
 
       options = settings.ubiquity_options
 
