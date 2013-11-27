@@ -170,7 +170,6 @@ module EpisodeEngine
     end # record_request
 
     def submitter(_params = params)
-      _params = _params.dup
       submitter_ip = request.ip
       submitter_host = request.env['REMOTE_HOST']
       submitter_address = submitter_host || submitter_ip
@@ -179,12 +178,19 @@ module EpisodeEngine
       submitter_id ||= submitter_address
 
       _submitter = { }
-      _submitter[:submitter_ip] = submitter_ip
-      _submitter[:submitter_host] = submitter_host
-      _submitter[:submitter_address] = submitter_address
-      _submitter[:submitter_id] = submitter_id
+      _submitter['submitter_ip'] = submitter_ip
+      _submitter['submitter_host'] = submitter_host
+      _submitter['submitter_address'] = submitter_address
+      _submitter['submitter_id'] = submitter_id
       _submitter
     end # submitter
+
+    def params_with_submitter(_params = params)
+      _params = _params.dup
+      _submitter = submitter(_params)
+      _params.merge!(_submitter)
+      _params
+    end
 
     def get_ubiquity_job_status(job_id)
       #@sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
