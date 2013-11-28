@@ -13,6 +13,7 @@ require 'episode_engine/database'
 require 'episode_engine/date_time_helper'
 require 'episode_engine/ubiquity'
 require 'episode_engine/status_tracker'
+require 'episode_engine/ubiquity/submission_manager'
 
 module EpisodeEngine
 
@@ -193,8 +194,8 @@ module EpisodeEngine
     end
 
     def get_ubiquity_job_status(job_id)
-      #@sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
-      #@sm.submission_get_by_ubiquity_job_id(job_id).first
+      @sm ||= EpisodeEngine::Ubiquity::SubmissionManager.new
+      @sm.submission_get_by_ubiquity_job_id(job_id).first
     end # get_ubiquity_job_status
 
     def process_ubiquity_job_status_request(_request)
