@@ -2,6 +2,11 @@ module EpisodeEngine
 
   class HTTP
 
+    def get_or_post(path, opts={}, &block)
+      get(path, opts, &block)
+      post(path, opts, &block)
+    end
+
     ### UBIQUITY ROUTES BEGIN
 
     # Passthrough for submitting ubiquity jobs
@@ -236,6 +241,26 @@ module EpisodeEngine
         end
       end
       format_response(_response)
+    end
+
+
+    get_or_post '/ubiquity/transcode_settings_lookup_table' do
+      log_request_match(__method__)
+      _params = merge_params_from_body
+
+      options = settings.ubiquity_options
+
+      transcode_settings_from_message = self.class.process_transcode_settings_lookup_options(_params)
+      unless transcode_settings_from_message.empty?
+        logger.debug { "TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE. #{transcode_settings_from_message}" }
+        options[:transcode_settings_lookup] = transcode_settings_from_message
+      else
+        logger.debug { "NO TRANSCODE SETTINGS LOOKUP OPTIONS FOUND IN MESSAGE.\n#{_params}" }
+      end
+
+      @transcode_settings_table = Ubiquity::TranscodeSettingsLookup.build_transcode_settings_table(options)
+      @transcode_settings_table ||= [ { } ]
+      format_response(@transcode_settings_table)
     end
 
     # Status Tracker Trigger

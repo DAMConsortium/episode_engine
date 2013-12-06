@@ -109,12 +109,14 @@ module EpisodeEngine
                   field_value_as_string = field_value
                   map_entry_value = map_entry_value_as_string = map_entry_value.to_s
                 else
-                  field_value_as_string = '='
-                  map_entry_value_as_string = '!'
+                  field_value_as_string = nil
+                  map_entry_value_as_string = nil
                 end
               end
               #field_value = field_value.to_s.downcase
-              if map_entry_value == field_value || map_entry_value == '*' || map_entry_value_as_string == field_value_as_string
+              if map_entry_value == field_value ||
+                  map_entry_value == '*' ||
+                  (map_entry_value_as_string.is_a?(String) and field_value_as_string.is_a?(String) and map_entry_value_as_string == field_value_as_string)
                 log_match_result("\tMatch For #{field_name} : #{field_value} (#{field_value.class.name}) == #{map_entry_value} (#{map_entry_value.class.name})")
               else
                 log_match_result("\tNo Match For #{field_name} : #{field_value} (#{field_value.class.name}) != #{map_entry_value} (#{map_entry_value.class.name})")
