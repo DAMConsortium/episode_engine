@@ -277,10 +277,13 @@ module EpisodeEngine
       summaries = [ ]
       _requests.each do |_r|
         request_summary = { }
+        submitter_id = nil
+
         request_id = _r[:id] || _r['_id'].to_s
         action = _r['action']
         completed = _r['completed']
         status = _r['status']
+        created_at = _r['created_at']
         ubiquity = _r['ubiquity'] || { }
         ubiquity_jobs = ubiquity[:jobs] || { }
 
@@ -288,6 +291,8 @@ module EpisodeEngine
         request_summary[:action] = action
         request_summary[:completed] = completed
         request_summary[:status] = status
+        request_summary[:created_at] = created_at
+
         #summaries << request_summary
 
         response = _r['response'] || { }
@@ -303,6 +308,9 @@ module EpisodeEngine
 
             workflow = submission[:workflow] || { }
             workflow_name = workflow[:name]
+            workflow_arguments = workflow[:arguments]
+
+            submitter_id = workflow_arguments[:submitter_id]
 
             submission_response = submission[:response] || { }
             ubiquity_http_uri = submission_response[:uri]
@@ -316,18 +324,21 @@ module EpisodeEngine
             task_summary[:workflow_name] = workflow_name
             task_summary[:success] = submission_success
             task_summary[:job_id] = html ? "<a href='/ubiquity/job/#{submission_job_id}'>#{submission_job_id}</a>" : submission_job_id
+            task_summary[:submitter_id] = submitter_id
             #task_summary[:command_line] = ubiquity_cli_command
             #task_summary[:command_line_response] = ubiquity_cli_response
             #task_summary[:response] = submission_response
 
             task_summaries[epitask_file_name] = { :ubiquity_submission => task_summary }
+
           end # tasks
           sfp_summary[:tasks] = task_summaries
           sfp_summaries[source_file_path] = sfp_summary
         end # content
+        request_summary[:submitter_id] = submitter_id
 
         ubiquity_jobs_summary = { }
-        puts "UBIQUITY JOBS: #{ubiquity_jobs}"
+        #puts "UBIQUITY JOBS: #{ubiquity_jobs}"
         ubiquity_jobs.each do |ubiquity_job_id, ubiquity_job|
           ubiquity_job_id = "<a href='/ubiquity/job/#{ubiquity_job_id}'>#{ubiquity_job_id}</a>" if html
           _job_summary = ubiquity_job
