@@ -132,7 +132,7 @@ module EpisodeEngine
       tasks.each do |task|
 
         workflow_arguments['epitask_file_name'] = task
-        splits.each { |k,v| workflow_arguments[k] = v.shift }
+        splits.dup.each { |k, _| workflow_arguments[k] = splits[k].shift }
 
         workflow = { 'workflow_name' => workflow_name, 'workflow_parameters' => JSON.generate(workflow_arguments) }
         submission_options = { :method => submission_method}
