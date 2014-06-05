@@ -118,6 +118,8 @@ module EpisodeEngine
               self.find({ })
             end # find_all
 
+            def remove(*args); db.remove(*args) end
+
           end # self
 
 
