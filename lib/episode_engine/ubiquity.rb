@@ -140,7 +140,7 @@ module EpisodeEngine
 
         #submission = response_as_hash.merge({ :method => submission_method, :workflow => { :name => workflow_name, :arguments => workflow_arguments }})
         job_id = response_as_hash[:job_id]
-        submission = { :submission => { :workflow => { :name => workflow_name, :arguments => workflow_arguments }, :method => submission_method, :response => response_as_hash, :job_id => job_id }}
+        submission = { :submission => { :workflow => { :name => workflow_name, :arguments => workflow_arguments.dup }, :method => submission_method, :response => response_as_hash, :job_id => job_id }}
         submission[:job_id] = job_id if job_id
         task_responses[task] = submission
         #task_responses[task] = { :submission => :workflow => { :name => workflow_name, :arguments => workflow_arguments } }
