@@ -40,6 +40,10 @@ module EpisodeEngine
       end
     end # execute
 
+    # @param [String] file_path
+    # @param [Hash] options
+    # @option options [String] :executable_path
+    # @return [Hash]
     def self.mig(file_path, options = { })
       raise Errno::ENOENT, "File Not Found. File Path: '#{file_path}'" unless File.exist?(file_path)
 
@@ -56,6 +60,9 @@ module EpisodeEngine
     end # self.mig
 
 
+    # @param [Hash] workflow
+    # @param [Hash] options
+    # @return [Hash]
     def self.submit_workflow(workflow, options = { })
       logger.debug { "Submitting To Ubiquity: #{PP.pp(workflow, '')}" }
       _response = Submitter.submit(options.merge(workflow))
@@ -78,6 +85,21 @@ module EpisodeEngine
     end
 
     def self.submit_source_file_path(source_file_path, workflow_name, workflow_arguments, options)
+    # Single source file path submission method
+    #
+    # This method handles the submission of a source file path to a workflow, it executes the transcode settings lookup,
+    # processes the transcode settings to detect if it will be a single task or multi-task submission and then sends
+    # each submission and records the initial task creation response
+    #
+    #
+    # @param [String] source_file_path The full path to the file being submitted
+    # @param [String] workflow_name The name of the workflow the file is being submitted to
+    # @param [Hash] workflow_arguments
+    # @param [Hash] options
+    # @option options [Symbol] :submission_method (:http)
+    # @option options [String] :mig_executable_file_path
+    # @option options [Hash] :transcode_settings_lookup
+    # @option options [String] :submission_missing_lookup_workflow_name (DEFAULT_TRANSCODE_SETTINGS_NOT_FOUND_WORKFLOW_NAME)
       workflow_arguments['source_file_path'] = source_file_path
 
       return { :error => { :message => 'Source File Path Not Found.' } } unless File.exists?(source_file_path)
@@ -148,9 +170,13 @@ module EpisodeEngine
       { :tasks => task_responses, :metadata_sources => metadata_sources }
     end # self.process_source_file_path
 
+    # The primary submission method
+    #
+    # Checks for required parameters and handles multiple files being submitted in one call.
+    #
     # @param [Hash] args The parameters from the request
-    # @option args [String] workflow_name
-    # @option args [String] workflow_arguments
+    # @option args [String] :workflow_name
+    # @option args [String] :workflow_arguments
     # @param [Hash] options Options for this request
     # @option options [Symbol] :submission_method
     # @option options [String] :submission_workflow_name
