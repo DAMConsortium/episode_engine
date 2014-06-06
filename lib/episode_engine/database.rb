@@ -98,6 +98,11 @@ module EpisodeEngine
             self.find({ })
           end # find_all
 
+          def remove(*args)
+            db.remove(*args)
+          end
+          alias :delete :remove
+
           def process_query_pagination_parameters(args = { })
             args = args.dup
             limit = search_hash!(args, :limit) || 100
@@ -112,9 +117,7 @@ module EpisodeEngine
             { :skip => skip.to_i, :limit => limit.to_i }
           end # process_query_pagination_parameters
 
-
         end # self
-
 
       end # Common
 
