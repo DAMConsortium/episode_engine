@@ -30,11 +30,15 @@ module EpisodeEngine
       format_response(results)
     end
 
-    # Query requests handled by ubiquity
-    get '/ubiquity/requests/*' do
+    delete '/ubiquity/job/:ubiquity_job_id' do
       log_request_match(__method__)
-      criteria = params[:splat].first
+      ubiquity_job_id = params[:ubiquity_job_id]
+      results = settings.ubiquity_jobs.remove(ubiquity_job_id)
+      format_response(results)
+    end
 
+
+    def process_request_select_parameters_from_criteria(criteria)
       if criteria.is_a?(String)
         criteria, format = criteria.split('.')
         status, date_from, date_to = criteria.split('/')
@@ -48,14 +52,9 @@ module EpisodeEngine
       if date_from
         _date_from, _date_to = DateTimeHelper.process_range(date_from, date_to)
         selector['created_at'] = { '$gte' => _date_from.to_i, '$lte' => _date_to.to_i }
+      else
+        _date_from = _date_to = nil
       end
-
-      show_detail_param = search_hash(params, :show_detail, :detail)
-      show_detail = (show_detail_param and (%w(true 1).include?(show_detail_param.downcase)))
-
-      output_html_param = search_hash(params, :output_html, :html)
-      output_html = (output_html_param and (%w(true 1).include?(output_html_param.downcase)))
-      output_html ||= %w(html htm).include?(format)
 
       pagination_options = Database::Helpers::Requests.process_query_pagination_parameters(params)
       options = pagination_options.dup
@@ -85,9 +84,84 @@ module EpisodeEngine
         when :all, :any
           # All regardless of status
         else
-          _response = { :error => { :message => "Unknown Job Status. '#{job_status}'" } }
           unknown_job_status = true
       end
+
+      return {
+        :unknown_job_status => unknown_job_status,
+        :job_status => job_status,
+        :original_date_from => date_from,
+        :original_date_to => date_to,
+        :date_from => _date_from,
+        :date_to => _date_to,
+        :pagination_options => pagination_options,
+        :selector => selector,
+        :options => options,
+        :format => format,
+      }
+    end
+
+    # Delete requests handled by ubiquity
+    delete `/ubiquity/requests/*` do
+
+      log_request_match(__method__)
+      criteria = params[:splat].first
+
+      parameters_from_criteria = process_request_select_parameters_from_criteria(criteria)
+
+      unknown_job_status = parameters_from_criteria[:unknown_job_status]
+      job_status         = parameters_from_criteria[:job_status]
+      date_from          = parameters_from_criteria[:original_date_from]
+      date_to            = parameters_from_criteria[:original_date_to]
+      _date_from         = parameters_from_criteria[:date_from]
+      _date_to           = parameters_from_criteria[:date_to]
+      selector           = parameters_from_criteria[:selector]
+      options            = parameters_from_criteria[:options]
+
+      unless unknown_job_status
+        logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
+        begin
+          response = settings.requests.remove(selector, options.merge(:count => true))
+
+          _requests = response[:records]
+          total_requests = response[:count]
+
+          # We merge request at the end so that :id is the first key in the hash. This should result with it being at the top when being output.
+          _requests = _requests.map { |request| _request = { :id => request.delete('_id').to_s }; _request.merge(request) }
+        rescue => e
+          _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
+        end
+      else
+        _response = { :error => { :message => "Unknown Job Status. '#{job_status}'" } }
+      end
+
+      format_response(_response)
+    end
+
+    # Query requests handled by ubiquity
+    get '/ubiquity/requests/*' do
+      log_request_match(__method__)
+      criteria = params[:splat].first
+
+      parameters_from_criteria = process_request_select_parameters_from_criteria(criteria)
+
+      unknown_job_status = parameters_from_criteria[:unknown_job_status]
+      job_status         = parameters_from_criteria[:job_status]
+      date_from          = parameters_from_criteria[:original_date_from]
+      date_to            = parameters_from_criteria[:original_date_to]
+      _date_from         = parameters_from_criteria[:date_from]
+      _date_to           = parameters_from_criteria[:date_to]
+      pagination_options = parameters_from_criteria[:pagination_options]
+      selector           = parameters_from_criteria[:selector]
+      options            = parameters_from_criteria[:options]
+      format             = parameters_from_criteria[:format]
+
+      show_detail_param = search_hash(params, :show_detail, :detail)
+      show_detail = (show_detail_param and (%w(true 1).include?(show_detail_param.downcase)))
+
+      output_html_param = search_hash(params, :output_html, :html)
+      output_html = (output_html_param and (%w(true 1).include?(output_html_param.downcase)))
+      output_html ||= %w(html htm).include?(format)
 
       unless unknown_job_status
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
@@ -104,6 +178,8 @@ module EpisodeEngine
         rescue => e
           _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
         end
+      else
+        _response = { :error => { :message => "Unknown Job Status. '#{job_status}'" } }
       end
 
       _requests ||= { }
@@ -120,7 +196,6 @@ module EpisodeEngine
       #  requests: _requests,
       #  response: _response,
       #}
-
 
       if output_html
         content_type :html
