@@ -122,7 +122,7 @@ module EpisodeEngine
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
           response = settings.requests.remove(selector, options.merge(:count => true))
-          _response = response
+          _response = { :selector => selector, :options => options, :mongo => response }
         rescue => e
           _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
         end
