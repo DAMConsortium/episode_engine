@@ -102,7 +102,7 @@ module EpisodeEngine
     end
 
     # Delete requests handled by ubiquity
-    delete `/ubiquity/requests/*` do
+    delete '/ubiquity/requests/*' do
 
       log_request_match(__method__)
       criteria = params[:splat].first
