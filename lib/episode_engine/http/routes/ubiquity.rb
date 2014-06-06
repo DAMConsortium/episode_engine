@@ -122,12 +122,7 @@ module EpisodeEngine
         logger.debug { "Searching for #{job_status} jobs. From: #{date_from} (#{_date_from}) To: #{date_to} (#{_date_to})\n\tSelector: #{selector}\n\tOptions: #{options}" }
         begin
           response = settings.requests.remove(selector, options.merge(:count => true))
-
-          _requests = response[:records]
-          total_requests = response[:count]
-
-          # We merge request at the end so that :id is the first key in the hash. This should result with it being at the top when being output.
-          _requests = _requests.map { |request| _request = { :id => request.delete('_id').to_s }; _request.merge(request) }
+          _response = response
         rescue => e
           _response = { :exception => { :message => e.message, :backtrace => e.backtrace } }
         end
