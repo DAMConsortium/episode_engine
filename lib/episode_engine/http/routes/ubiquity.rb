@@ -357,7 +357,7 @@ module EpisodeEngine
         ubiquity = _r['ubiquity'] || { }
         ubiquity_jobs = ubiquity[:jobs] || { }
 
-        request_summary[:id] = html ? "<a href='/request/#{request_id}'>#{request_id}</a>" : request_id
+        request_summary[:id] = html ? "<a href='/requests/#{request_id}'>#{request_id}</a>" : request_id
         request_summary[:action] = action
         request_summary[:completed] = completed
         request_summary[:status] = status
@@ -380,7 +380,7 @@ module EpisodeEngine
             workflow_name = workflow[:name]
             workflow_arguments = workflow[:arguments]
 
-            submitter_id = workflow_arguments[:submitter_id]
+            submitter_id = search_hash(workflow_arguments, :submitter_id)
 
             submission_response = submission[:response] || { }
             ubiquity_http_uri = submission_response[:uri]
