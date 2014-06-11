@@ -354,6 +354,7 @@ module EpisodeEngine
         completed = _r['completed']
         status = _r['status']
         created_at = _r['created_at']
+        modified_at = _r['modified_at']
         ubiquity = _r['ubiquity'] || { }
         ubiquity_jobs = ubiquity[:jobs] || { }
 
@@ -362,6 +363,7 @@ module EpisodeEngine
         request_summary[:completed] = completed
         request_summary[:status] = status
         request_summary[:created_at] = created_at
+        request_summary[:modified_at] = modified_at
 
         #summaries << request_summary
 
